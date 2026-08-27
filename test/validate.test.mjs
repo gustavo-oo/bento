@@ -1,6 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluate } from '../lib/validate.mjs';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { evaluate, runEquivalence } from '../lib/validate.mjs';
 import { parseLimitsYaml } from '../lib/config.mjs';
 
 test('evaluate: sem violação dentro dos limites', () => {
@@ -48,4 +52,79 @@ test('evaluate: override por glob viola só o grupo', () => {
   assert.ok(r.violations.some((v) => v.includes('mig/**')));
   assert.equal(r.global.lines, 106);
   assert.equal(r.groups.length, 1);
+});
+
+function git(args, cwd) {
+  return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+}
+
+function makeRepo() {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-git-'));
+  git(['init', '-b', 'main'], dir);
+  git(['config', 'user.email', 't@test'], dir);
+  git(['config', 'user.name', 't'], dir);
+  return dir;
+}
+
+function commit(dir, files) {
+  for (const [name, content] of Object.entries(files)) {
+    writeFileSync(join(dir, name), content);
+  }
+  git(['add', '-A'], dir);
+  git(['commit', '-m', 'wip'], dir);
+}
+
+test('runEquivalence: camadas que somam igual ao original → 0', () => {
+  const dir = makeRepo();
+  commit(dir, { 'a.ts': '1\n' });
+  git(['checkout', '-b', 'feat'], dir);
+  commit(dir, { 'a.ts': '1\n2\n', 'b.ts': 'x\n' });
+  commit(dir, { 'c.ts': 'y\n' });
+
+  git(['checkout', '-b', 'layer1', 'main'], dir);
+  commit(dir, { 'a.ts': '1\n2\n', 'b.ts': 'x\n' });
+  git(['checkout', '-b', 'layer2'], dir);
+  commit(dir, { 'c.ts': 'y\n' });
+
+  const code = runEquivalence({ base: 'main', head: 'feat', layers: ['layer1', 'layer2'], cwd: dir });
+  assert.equal(code, 0);
+});
+
+test('runEquivalence: camada com conteúdo diferente → 1 e relatório', () => {
+  const dir = makeRepo();
+  commit(dir, { 'a.ts': '1\n' });
+  git(['checkout', '-b', 'feat'], dir);
+  commit(dir, { 'a.ts': '1\n2\n', 'b.ts': 'x\n' });
+  commit(dir, { 'c.ts': 'y\n' });
+
+  git(['checkout', '-b', 'layer1', 'main'], dir);
+  commit(dir, { 'a.ts': '1\n2\n', 'b.ts': 'x\n' });
+  git(['checkout', '-b', 'layer2'], dir);
+  commit(dir, { 'c.ts': 'y\nz\n' });
+
+  const code = runEquivalence({ base: 'main', head: 'feat', layers: ['layer1', 'layer2'], cwd: dir });
+  assert.equal(code, 1);
+});
+
+test('runEquivalence: camadas em falta → 1', () => {
+  const dir = makeRepo();
+  commit(dir, { 'a.ts': '1\n' });
+  git(['checkout', '-b', 'feat'], dir);
+  commit(dir, { 'a.ts': '1\n2\n', 'b.ts': 'x\n' });
+  commit(dir, { 'c.ts': 'y\n' });
+
+  git(['checkout', '-b', 'layer1', 'main'], dir);
+  commit(dir, { 'a.ts': '1\n2\n', 'b.ts': 'x\n' });
+
+  const code = runEquivalence({ base: 'main', head: 'feat', layers: ['layer1'], cwd: dir });
+  assert.equal(code, 1);
+});
+
+test('runEquivalence: sem camadas → 2', () => {
+  const dir = makeRepo();
+  commit(dir, { 'a.ts': '1\n' });
+  git(['checkout', '-b', 'feat'], dir);
+  commit(dir, { 'a.ts': '1\n2\n' });
+  const code = runEquivalence({ base: 'main', head: 'feat', layers: [], cwd: dir });
+  assert.equal(code, 2);
 });
