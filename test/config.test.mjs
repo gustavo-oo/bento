@@ -39,6 +39,14 @@ test('glob matching com ** e *', () => {
   assert.ok(matchesOverride('src/lib/x.ts', { glob: 'src/*/x.ts' }));
 });
 
+test('glob com ? casa um caractere', () => {
+  assert.ok(matchesOverride('src/a/x.ts', { glob: 'src/?/x.ts' }));
+});
+
+test('glob com ? não casa múltiplos caracteres', () => {
+  assert.ok(!matchesOverride('src/ab/x.ts', { glob: 'src/?/x.ts' }));
+});
+
 test('loadLimits usa defaults quando arquivo ausente', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-config-'));
   assert.equal(loadLimits(dir).maxLines, 400);
