@@ -55,7 +55,7 @@ bento install [--no-agents]
   ├─ gh-stack        → gh extension install github/gh-stack (se ausente)
   └─ seção AGENTS.md → apêndice (omitir com --no-agents)
 bento update            # re-instala skills/scripts/commands, preserva config local
-bento check [base]      # passthrough: métricas do diff vs .pr-limits.yaml
+bento check [base]      # passthrough: métricas do diff (head = branch atual, base default = main) vs .pr-limits.yaml
 bento equivalence <base> <head> <camada…>  # passthrough: prova equivalência
 ```
 
