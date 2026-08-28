@@ -39,8 +39,9 @@ function run() {
     case 'uninstall': {
       try {
         execFileSync('gh', ['extension', 'remove', 'github/gh-stack'], { stdio: 'ignore' });
-      } catch {
-        console.error('aviso: gh-stack não pôde ser removido (gh indisponível?)');
+      } catch (err) {
+        const detail = err.stderr?.trim() || err.message;
+        console.error(`aviso: gh-stack não pôde ser removido (${detail})`);
       }
       const { removed } = uninstall(process.cwd());
       if (removed.length === 0) {
