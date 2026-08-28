@@ -5,7 +5,7 @@ Catálogo pessoal do fluxo de opencode: skills, commands, scripts e configs — 
 ## Instalação (no projeto consumidor)
 
 ```bash
-node bin/bento.mjs install        # instala skill, scripts, .pr-limits.yaml e gh-stack
+node bin/bento.mjs install        # instala skill, scripts, .pr-limits.yaml, gh-stack e superpowers
 node bin/bento.mjs update         # re-instala mantendo .pr-limits.yaml local
 ```
 
@@ -16,6 +16,7 @@ Instala:
 - `scripts/pr-split-verify.mjs` — shim para `check` e `equivalence`
 - `.bento/` — lib + bin + skills + templates (atualizáveis com `bento update`)
 - `.pr-limits.yaml` — config (criada só se ausente; nunca sobrescrita)
+- `superpowers` — plugin adicionado ao `opencode.json` (pule com `--no-superpowers`)
 - seção `## Bento (small-prs)` no `AGENTS.md`
 - extensão `gh-stack` do GitHub CLI
 
@@ -32,6 +33,7 @@ Remove:
 - `.opencode/skills/small-prs/` — skill opencode
 - `scripts/pr-split-verify.mjs` — shim (só se for do bento; arquivo do usuário com o mesmo nome é preservado)
 - `.pr-limits.yaml` — config
+- entrada do plugin superpowers no `opencode.json` (arquivo removido se ficar vazio)
 - seção `## Bento (small-prs)` no `AGENTS.md` (arquivo removido se ficar vazio)
 - extensão `gh-stack` do GitHub CLI (aviso se `gh` indisponível; sem falha)
 
