@@ -33,7 +33,7 @@ Exit codes: `0` ok, `1` violação/divergência, `2` uso inválido.
 
 1. **Prevenção** — ao planejar (superpowers:writing-plans), 1 task = 1 slice de PR (testes junto, refactor ≠ feature, ≤400 linhas/10 arquivos).
 2. **Validação** — antes de abrir PR, rode `check`; acima do limite o PR é bloqueado.
-3. **Correção** — com aprovação: split em camadas coerentes, equivalência verificada, entrega em cadeia via `gs push`/`gs submit`.
+3. **Correção** — com aprovação: split em camadas coerentes, equivalência verificada, entrega em cadeia via `gh stack push`/`gh stack submit` (alias `gs` disponível via `gh stack alias`, opcional).
 
 ## Config `.pr-limits.yaml`
 

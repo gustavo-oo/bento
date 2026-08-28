@@ -57,6 +57,27 @@ test('check: diff dentro dos limites sai com 0', () => {
   assert.equal(r.status, 0);
 });
 
+test('check: usa three-dot (merge-base) — main avançado não conta como deleção fantasma', () => {
+  const dir = makeRepo();
+  writeFileSync(join(dir, 'a.txt'), 'v1\n');
+  git(['add', '-A'], dir);
+  git(['commit', '-m', 'base'], dir);
+  git(['checkout', '-b', 'feat'], dir);
+  writeFileSync(join(dir, 'a.txt'), 'v1\nv2\n');
+  git(['add', '-A'], dir);
+  git(['commit', '-m', 'small'], dir);
+  git(['checkout', 'main'], dir);
+  const big = Array.from({ length: 500 }, (_, i) => `line ${i}`).join('\n');
+  writeFileSync(join(dir, 'big.txt'), `${big}\n`);
+  git(['add', '-A'], dir);
+  git(['commit', '-m', 'big on main'], dir);
+  git(['checkout', 'feat'], dir);
+  writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 400\nmax_files: 10\n');
+  const r = spawnSync(process.execPath, [BIN, 'check', 'main'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.ok(r.stdout.includes('PR dentro dos limites.'));
+});
+
 test('update: instala sem exigir gh', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
   const r = spawnSync(process.execPath, [BIN, 'update'], { cwd: dir, encoding: 'utf8' });
