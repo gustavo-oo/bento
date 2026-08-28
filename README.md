@@ -19,6 +19,22 @@ Instala:
 - seção `## Bento (small-prs)` no `AGENTS.md`
 - extensão `gh-stack` do GitHub CLI
 
+## Desinstalação
+
+```bash
+node bin/bento.mjs uninstall    # remove tudo (idempotente)
+```
+
+> Após publicar no npm, use `npx bento uninstall`.
+
+Remove:
+- `.bento/` — lib + bin + skills + templates
+- `.opencode/skills/small-prs/` — skill opencode
+- `scripts/pr-split-verify.mjs` — shim (só se for do bento; arquivo do usuário com o mesmo nome é preservado)
+- `.pr-limits.yaml` — config
+- seção `## Bento (small-prs)` no `AGENTS.md` (arquivo removido se ficar vazio)
+- extensão `gh-stack` do GitHub CLI (aviso se `gh` indisponível; sem falha)
+
 ## Uso
 
 ```bash

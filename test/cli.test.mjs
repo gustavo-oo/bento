@@ -84,3 +84,13 @@ test('update: instala sem exigir gh', () => {
   assert.equal(r.status, 0);
   assert.ok(existsSync(join(dir, '.opencode', 'skills', 'small-prs', 'SKILL.md')));
 });
+
+test('uninstall: CLI remove e sai 0', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  const upd = spawnSync(process.execPath, [BIN, 'update'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(upd.status, 0);
+  assert.ok(existsSync(join(dir, '.opencode', 'skills', 'small-prs', 'SKILL.md')));
+  const r = spawnSync(process.execPath, [BIN, 'uninstall'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'small-prs', 'SKILL.md')));
+});

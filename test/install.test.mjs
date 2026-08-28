@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { install } from '../lib/install.mjs';
+import { install, uninstall } from '../lib/install.mjs';
 
 function git(args, cwd) {
   return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
@@ -65,4 +65,40 @@ test('shim instalado roda check num repo git', () => {
     encoding: 'utf8',
   });
   assert.equal(r.status, 0);
+});
+
+test('uninstall: remove tudo do install e preserva AGENTS.md', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-uninstall-'));
+  const original = '# Meu Projeto\n\n## Regras\n\n- algo\n';
+  writeFileSync(join(dir, 'AGENTS.md'), original);
+  install(dir, {});
+  const { removed } = uninstall(dir);
+  assert.ok(!existsSync(join(dir, '.bento')));
+  assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'small-prs')));
+  assert.ok(!existsSync(join(dir, 'scripts', 'pr-split-verify.mjs')));
+  assert.ok(!existsSync(join(dir, '.pr-limits.yaml')));
+  const agents = readFileSync(join(dir, 'AGENTS.md'), 'utf8');
+  assert.ok(!agents.includes('## Bento'));
+  assert.ok(agents.includes('# Meu Projeto'));
+  assert.ok(agents.includes('## Regras'));
+  assert.ok(agents.includes('- algo'));
+  assert.equal(agents, original);
+  assert.ok(removed.includes('AGENTS.md'));
+});
+
+test('uninstall: idempotente em projeto limpo', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-uninstall-clean-'));
+  const { removed } = uninstall(dir);
+  assert.deepEqual(removed, []);
+});
+
+test('uninstall: não apaga shim do usuário', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-uninstall-shim-'));
+  mkdirSync(join(dir, 'scripts'), { recursive: true });
+  const userShim = '#!/usr/bin/env node\nconsole.log("meu shim");\n';
+  writeFileSync(join(dir, 'scripts', 'pr-split-verify.mjs'), userShim);
+  const { removed } = uninstall(dir);
+  assert.ok(existsSync(join(dir, 'scripts', 'pr-split-verify.mjs')));
+  assert.equal(readFileSync(join(dir, 'scripts', 'pr-split-verify.mjs'), 'utf8'), userShim);
+  assert.ok(!removed.includes('scripts/pr-split-verify.mjs'));
 });
