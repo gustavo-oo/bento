@@ -218,3 +218,71 @@ test('remove: jsonc com plugin em forma de string — não altera', () => {
   assert.equal(removeSuperpowersPlugin(dir), null);
   assert.equal(readFileSync(join(dir, 'opencode.jsonc'), 'utf8'), before);
 });
+
+test('add: .json inválido com chaves — não altera', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), '{ "plugin": [1, 2] "x" }');
+  const before = readFileSync(join(dir, 'opencode.json'), 'utf8');
+  assert.equal(addSuperpowersPlugin(dir), null);
+  assert.equal(readFileSync(join(dir, 'opencode.json'), 'utf8'), before);
+});
+
+test('remove: .jsonc válido sem comentários — não deleta o arquivo', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), JSON.stringify({ plugin: [SUPERPOWERS_PLUGIN] }, null, 2) + '\n');
+  const r = removeSuperpowersPlugin(dir);
+  assert.ok(r);
+  assert.ok(existsSync(join(dir, 'opencode.jsonc')));
+  const obj = JSON.parse(readFileSync(join(dir, 'opencode.jsonc'), 'utf8'));
+  assert.deepEqual(obj, {});
+});
+
+test('add: jsonc — comentário na última linha do array não corrompe a inserção', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  "plugin": [\n    "@scope/a" // nota\n  ]\n}\n');
+  const r = addSuperpowersPlugin(dir);
+  assert.ok(r);
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes('// nota'));
+  assert.ok(raw.includes('@scope/a'));
+  assert.ok(raw.includes(SUPERPOWERS_PLUGIN));
+  assert.ok(!raw.includes('// nota,'));
+});
+
+test('remove: jsonc — sem vírgula pendurada quando plugin é último item', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  // c\n  "a": 1,\n  "plugin": ["' + SUPERPOWERS_PLUGIN + '"]\n}\n');
+  const r = removeSuperpowersPlugin(dir);
+  assert.ok(r);
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes('// c'));
+  assert.ok(raw.includes('"a": 1'));
+  assert.ok(!raw.includes(','));
+  assert.ok(!raw.includes(SUPERPOWERS_PLUGIN));
+});
+
+test('remove: duplicatas no jsonc — todas removidas', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  // dup\n  "plugin": [\n    "' + SUPERPOWERS_PLUGIN + '",\n    "' + SUPERPOWERS_PLUGIN + '"\n  ]\n}\n');
+  const r = removeSuperpowersPlugin(dir);
+  assert.ok(r);
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(!raw.includes(SUPERPOWERS_PLUGIN));
+});
+
+test('add: jsonc — plugin com prefixo parecido não conta como presente', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{ // x\n  "plugin": ["x-superpowers@git+https://github.com/obra/superpowers.git"]\n}\n');
+  const r = addSuperpowersPlugin(dir);
+  assert.ok(r);
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes(SUPERPOWERS_PLUGIN));
+});
+
+test('remove: avisa no stderr para plugin não-array', (t) => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{ // x\n  "plugin": "@scope/only"\n}\n');
+  const mock = t.mock.method(console, 'error', () => {});
+  assert.equal(removeSuperpowersPlugin(dir), null);
+  assert.equal(mock.mock.callCount(), 1);
+});
