@@ -2,10 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { SUPERPOWERS_PLUGIN } from '../lib/opencode-config.mjs';
 
 const BIN = join(dirname(fileURLToPath(import.meta.url)), '..', 'bin', 'bento.mjs');
 
@@ -104,4 +105,31 @@ test('uninstall: CLI remove e sai 0', () => {
   const r = spawnSync(process.execPath, [BIN, 'uninstall'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0);
   assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'small-prs', 'SKILL.md')));
+});
+
+test('update: adiciona superpowers ao opencode.json', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  const r = spawnSync(process.execPath, [BIN, 'update'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.ok(r.stdout.includes('superpowers'));
+  const obj = JSON.parse(readFileSync(join(dir, 'opencode.json'), 'utf8'));
+  assert.deepEqual(obj.plugin, [SUPERPOWERS_PLUGIN]);
+});
+
+test('update --no-superpowers: não toca opencode.json', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  writeFileSync(join(dir, 'opencode.json'), '{ "theme": "dark" }');
+  const r = spawnSync(process.execPath, [BIN, 'update', '--no-superpowers'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.ok(!r.stdout.includes('superpowers'));
+  assert.equal(readFileSync(join(dir, 'opencode.json'), 'utf8'), '{ "theme": "dark" }');
+});
+
+test('uninstall: remove superpowers do opencode.json', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  spawnSync(process.execPath, [BIN, 'update'], { cwd: dir, encoding: 'utf8' });
+  const r = spawnSync(process.execPath, [BIN, 'uninstall'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.ok(r.stdout.includes('superpowers'));
+  assert.ok(!existsSync(join(dir, 'opencode.json')));
 });

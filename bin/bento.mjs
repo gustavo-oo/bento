@@ -2,6 +2,7 @@
 import { execFileSync } from 'node:child_process';
 import { runCheck, runEquivalence } from '../lib/validate.mjs';
 import { install, uninstall } from '../lib/install.mjs';
+import { addSuperpowersPlugin, removeSuperpowersPlugin } from '../lib/opencode-config.mjs';
 
 const [, , cmd, ...args] = process.argv;
 
@@ -18,6 +19,7 @@ function ensureGhStack() {
 
 function run() {
   const noAgents = args.includes('--no-agents');
+  const noSuperpowers = args.includes('--no-superpowers');
   switch (cmd) {
     case 'install': {
       if (!ensureGhStack()) {
@@ -29,10 +31,18 @@ function run() {
       console.log('bento instalado:');
       console.log(`  skill → ${result.skillDir}`);
       console.log(`  lib   → ${result.dotBento}`);
+      if (!noSuperpowers) {
+        const sp = addSuperpowersPlugin(process.cwd());
+        if (sp) console.log(`  superpowers → ${sp.path}`);
+      }
       return;
     }
     case 'update': {
       install(process.cwd(), { noAgents });
+      if (!noSuperpowers) {
+        const sp = addSuperpowersPlugin(process.cwd());
+        if (sp) console.log(`  superpowers → ${sp.path}`);
+      }
       console.log('bento atualizado.');
       return;
     }
@@ -44,11 +54,13 @@ function run() {
         console.error(`aviso: gh-stack não pôde ser removido (${detail})`);
       }
       const { removed } = uninstall(process.cwd());
-      if (removed.length === 0) {
+      const sp = removeSuperpowersPlugin(process.cwd());
+      const all = sp ? [...removed, `superpowers (${sp.path})`] : removed;
+      if (all.length === 0) {
         console.log('bento: nada para remover.');
       } else {
         console.log('bento desinstalado:');
-        for (const path of removed) console.log(`  removido: ${path}`);
+        for (const path of all) console.log(`  removido: ${path}`);
       }
       return;
     }
@@ -60,9 +72,10 @@ function run() {
       return;
     default:
       console.error(`uso: bento install|update|uninstall|check|equivalence
-  install          instala skill, scripts, config e gh-stack no projeto
+  install          instala skill, scripts, config, gh-stack e superpowers no projeto
+                   (--no-agents pula AGENTS.md; --no-superpowers pula superpowers)
   update           re-instala mantendo .pr-limits.yaml (não toca gh-stack)
-  uninstall        remove tudo do bento (gh-stack, .bento, skill, shim, config, seção AGENTS.md)
+  uninstall        remove tudo do bento (gh-stack, .bento, skill, shim, config, superpowers, seção AGENTS.md)
   check [base]     valida tamanho do diff (head = HEAD, base default = main)
   equivalence <base> <head> <camada1> [camada2 ...]
 `);
