@@ -5,14 +5,16 @@ Catálogo pessoal do fluxo de opencode: skills, commands, scripts e configs — 
 ## Instalação (no projeto consumidor)
 
 ```bash
-npx bento install        # instala skill, scripts, .pr-limits.yaml e gh-stack
-npx bento update         # re-instala mantendo .pr-limits.yaml local
+node bin/bento.mjs install        # instala skill, scripts, .pr-limits.yaml e gh-stack
+node bin/bento.mjs update         # re-instala mantendo .pr-limits.yaml local
 ```
+
+> Após publicar no npm, use `npx bento …` (o pacote ainda não está publicado).
 
 Instala:
 - `.opencode/skills/small-prs/SKILL.md` — skill opencode (prevenção/validação/correção)
 - `scripts/pr-split-verify.mjs` — shim para `check` e `equivalence`
-- `.bento/` — lib + bin + templates (atualizáveis com `bento update`)
+- `.bento/` — lib + bin + skills + templates (atualizáveis com `bento update`)
 - `.pr-limits.yaml` — config (criada só se ausente; nunca sobrescrita)
 - seção `## Bento (small-prs)` no `AGENTS.md`
 - extensão `gh-stack` do GitHub CLI

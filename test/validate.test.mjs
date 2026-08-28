@@ -106,6 +106,22 @@ test('runEquivalence: camada com conteúdo diferente → 1 e relatório', () => 
   assert.equal(code, 1);
 });
 
+test('runEquivalence: camadas com mesma contagem mas conteúdo diferente → 1', () => {
+  const dir = makeRepo();
+  commit(dir, { 'a.ts': '1\n' });
+  git(['checkout', '-b', 'feat'], dir);
+  commit(dir, { 'a.ts': '1\n2\n', 'b.ts': 'x\n' });
+  commit(dir, { 'c.ts': 'y\nz\n' });
+
+  git(['checkout', '-b', 'layer1', 'main'], dir);
+  commit(dir, { 'a.ts': '1\n2\n', 'b.ts': 'x\n' });
+  git(['checkout', '-b', 'layer2'], dir);
+  commit(dir, { 'c.ts': 'w\nx\n' });
+
+  const code = runEquivalence({ base: 'main', head: 'feat', layers: ['layer1', 'layer2'], cwd: dir });
+  assert.equal(code, 1);
+});
+
 test('runEquivalence: camadas em falta → 1', () => {
   const dir = makeRepo();
   commit(dir, { 'a.ts': '1\n' });
