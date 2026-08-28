@@ -326,3 +326,22 @@ test('round-trip: add + remove em jsonc com comentários volta a um estado váli
   assert.ok(back.includes('"theme": "dark"'));
   assert.ok(!back.includes(SUPERPOWERS_PLUGIN));
 });
+
+test('remove: jsonc — comentário na entrada restante não engole o fechamento', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  "plugin": [\n    "@scope/a" // nota\n    ,\n    "' + SUPERPOWERS_PLUGIN + '"\n  ],\n  "theme": "dark"\n}\n');
+  const r = removeSuperpowersPlugin(dir);
+  assert.ok(r);
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes('@scope/a'));
+  assert.ok(raw.includes('// nota'));
+  assert.ok(raw.includes('"theme": "dark"'));
+  assert.ok(!raw.includes(SUPERPOWERS_PLUGIN));
+  assert.ok(!raw.includes('// nota]'));
+});
+
+test('remove: opencode.json é um diretório — avisa e não quebra', () => {
+  const dir = tmp();
+  mkdirSync(join(dir, 'opencode.json'));
+  assert.equal(removeSuperpowersPlugin(dir), null);
+});
