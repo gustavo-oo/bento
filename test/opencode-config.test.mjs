@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { addSuperpowersPlugin, SUPERPOWERS_PLUGIN } from '../lib/opencode-config.mjs';
+import { addSuperpowersPlugin, removeSuperpowersPlugin, SUPERPOWERS_PLUGIN } from '../lib/opencode-config.mjs';
 
 function tmp() {
   return mkdtempSync(join(tmpdir(), 'bento-opencode-'));
@@ -112,4 +112,70 @@ test('add: jsonc com plugin em forma de string — não altera', () => {
   const before = readFileSync(join(dir, 'opencode.jsonc'), 'utf8');
   assert.equal(addSuperpowersPlugin(dir), null);
   assert.equal(readFileSync(join(dir, 'opencode.jsonc'), 'utf8'), before);
+});
+
+test('remove: remove só a entrada superpowers, mantém outros plugins', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ plugin: ['@scope/a', SUPERPOWERS_PLUGIN, '@scope/b'] }, null, 2));
+  const r = removeSuperpowersPlugin(dir);
+  assert.ok(r);
+  const obj = JSON.parse(readFileSync(r.path, 'utf8'));
+  assert.deepEqual(obj.plugin, ['@scope/a', '@scope/b']);
+});
+
+test('remove: plugin só com superpowers — arquivo deletado quando fica {}', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ plugin: [SUPERPOWERS_PLUGIN] }, null, 2));
+  const r = removeSuperpowersPlugin(dir);
+  assert.ok(r);
+  assert.ok(!existsSync(join(dir, 'opencode.json')));
+});
+
+test('remove: plugin vazio após remoção — chave removida, resto preservado', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ plugin: [SUPERPOWERS_PLUGIN], theme: 'dark' }, null, 2));
+  const r = removeSuperpowersPlugin(dir);
+  assert.ok(r);
+  const obj = JSON.parse(readFileSync(r.path, 'utf8'));
+  assert.equal(obj.plugin, undefined);
+  assert.equal(obj.theme, 'dark');
+});
+
+test('remove: pin de versão (#v5.0.3) é removido', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ plugin: [`${SUPERPOWERS_PLUGIN}#v5.0.3`] }, null, 2));
+  const r = removeSuperpowersPlugin(dir);
+  assert.ok(r);
+  assert.ok(!existsSync(join(dir, 'opencode.json')));
+});
+
+test('remove: jsonc — remove entrada e preserva comentários', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  // plugins do projeto\n  "plugin": [\n    "@scope/a",\n    "' + SUPERPOWERS_PLUGIN + '"\n  ],\n  "theme": "dark"\n}\n');
+  const r = removeSuperpowersPlugin(dir);
+  assert.ok(r);
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes('// plugins do projeto'));
+  assert.ok(raw.includes('@scope/a'));
+  assert.ok(raw.includes('"theme": "dark"'));
+  assert.ok(!raw.includes(SUPERPOWERS_PLUGIN));
+});
+
+test('remove: jsonc — array vazio após remoção, chave removida, arquivo preservado', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  // so superpowers\n  "plugin": ["' + SUPERPOWERS_PLUGIN + '"]\n}\n');
+  const r = removeSuperpowersPlugin(dir);
+  assert.ok(r);
+  assert.ok(existsSync(join(dir, 'opencode.jsonc')));
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(!raw.includes('plugin'));
+  assert.ok(raw.includes('// so superpowers'));
+});
+
+test('remove: ausente — retorna null e não altera', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), '{}');
+  const before = readFileSync(join(dir, 'opencode.json'), 'utf8');
+  assert.equal(removeSuperpowersPlugin(dir), null);
+  assert.equal(readFileSync(join(dir, 'opencode.json'), 'utf8'), before);
 });
