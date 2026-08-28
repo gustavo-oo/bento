@@ -85,6 +85,17 @@ test('update: instala sem exigir gh', () => {
   assert.ok(existsSync(join(dir, '.opencode', 'skills', 'small-prs', 'SKILL.md')));
 });
 
+test('update funciona a partir da cópia instalada (.bento/bin/bento.mjs)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  const first = spawnSync(process.execPath, [BIN, 'update'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(first.status, 0);
+  const installed = join(dir, '.bento', 'bin', 'bento.mjs');
+  assert.ok(existsSync(installed));
+  const second = spawnSync(process.execPath, [installed, 'update'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(second.status, 0);
+  assert.ok(existsSync(join(dir, '.opencode', 'skills', 'small-prs', 'SKILL.md')));
+});
+
 test('uninstall: CLI remove e sai 0', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
   const upd = spawnSync(process.execPath, [BIN, 'update'], { cwd: dir, encoding: 'utf8' });
