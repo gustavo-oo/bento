@@ -179,3 +179,42 @@ test('remove: ausente — retorna null e não altera', () => {
   assert.equal(removeSuperpowersPlugin(dir), null);
   assert.equal(readFileSync(join(dir, 'opencode.json'), 'utf8'), before);
 });
+
+test('remove: jsonc — sem vírgula órfã quando plugin é primeiro item', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  "plugin": ["' + SUPERPOWERS_PLUGIN + '"],\n  "b": 2\n}\n');
+  const r = removeSuperpowersPlugin(dir);
+  assert.ok(r);
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes('"b": 2'));
+  assert.ok(!raw.includes(','));
+  assert.ok(!raw.includes(SUPERPOWERS_PLUGIN));
+});
+
+test('remove: jsonc — sem vírgula órfã com comentário entre chave e plugin', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  "a": 1,\n  // c\n  "plugin": ["' + SUPERPOWERS_PLUGIN + '"],\n  "b": 2\n}\n');
+  const r = removeSuperpowersPlugin(dir);
+  assert.ok(r);
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes('"a": 1'));
+  assert.ok(raw.includes('// c'));
+  assert.ok(raw.includes('"b": 2'));
+  assert.ok(!raw.includes('\n  ,'));
+  assert.ok(!raw.includes(SUPERPOWERS_PLUGIN));
+});
+
+test('remove: arquivo inválido (sem chaves) — retorna null e não altera', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), 'isso não é json');
+  assert.equal(removeSuperpowersPlugin(dir), null);
+  assert.equal(readFileSync(join(dir, 'opencode.json'), 'utf8'), 'isso não é json');
+});
+
+test('remove: jsonc com plugin em forma de string — não altera', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{ // x\n  "plugin": "@scope/only"\n}\n');
+  const before = readFileSync(join(dir, 'opencode.jsonc'), 'utf8');
+  assert.equal(removeSuperpowersPlugin(dir), null);
+  assert.equal(readFileSync(join(dir, 'opencode.jsonc'), 'utf8'), before);
+});
