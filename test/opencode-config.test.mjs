@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { addSuperpowersPlugin, removeSuperpowersPlugin, SUPERPOWERS_PLUGIN } from '../lib/opencode-config.mjs';
@@ -285,4 +285,44 @@ test('remove: avisa no stderr para plugin não-array', (t) => {
   const mock = t.mock.method(console, 'error', () => {});
   assert.equal(removeSuperpowersPlugin(dir), null);
   assert.equal(mock.mock.callCount(), 1);
+});
+
+test('remove: jsonc — vírgula e comentário na mesma linha da chave anterior', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  "a": 1, // nota\n  "plugin": ["' + SUPERPOWERS_PLUGIN + '"]\n}\n');
+  const r = removeSuperpowersPlugin(dir);
+  assert.ok(r);
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes('"a": 1 // nota'));
+  assert.ok(!raw.includes(SUPERPOWERS_PLUGIN));
+});
+
+test('remove: jsonc — comentário após a entrada removida não quebra o arquivo', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  // sp\n  "plugin": [\n    "' + SUPERPOWERS_PLUGIN + '" // sp plugin\n  ],\n  "a": 1\n}\n');
+  const r = removeSuperpowersPlugin(dir);
+  assert.ok(r);
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes('"a": 1'));
+  assert.ok(!raw.includes(SUPERPOWERS_PLUGIN));
+});
+
+test('add: opencode.json é um diretório — avisa e não quebra', () => {
+  const dir = tmp();
+  mkdirSync(join(dir, 'opencode.json'));
+  assert.equal(addSuperpowersPlugin(dir), null);
+});
+
+test('round-trip: add + remove em jsonc com comentários volta a um estado válido', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  // tema\n  "theme": "dark",\n  "plugin": ["@scope/a"]\n}\n');
+  addSuperpowersPlugin(dir);
+  const withSp = readFileSync(join(dir, 'opencode.jsonc'), 'utf8');
+  assert.ok(withSp.includes(SUPERPOWERS_PLUGIN));
+  removeSuperpowersPlugin(dir);
+  const back = readFileSync(join(dir, 'opencode.jsonc'), 'utf8');
+  assert.ok(back.includes('@scope/a'));
+  assert.ok(back.includes('// tema'));
+  assert.ok(back.includes('"theme": "dark"'));
+  assert.ok(!back.includes(SUPERPOWERS_PLUGIN));
 });
