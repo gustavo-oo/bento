@@ -237,6 +237,18 @@ test('remove: .jsonc válido sem comentários — não deleta o arquivo', () => 
   assert.deepEqual(obj, {});
 });
 
+test('add: jsonc — comentário na mesma linha do fechamento não engole a vírgula', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{ // x\n  "plugin": ["@scope/a" // nota]\n}\n');
+  const r = addSuperpowersPlugin(dir);
+  assert.ok(r);
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes('@scope/a'));
+  assert.ok(raw.includes('// nota'));
+  assert.ok(raw.includes(SUPERPOWERS_PLUGIN));
+  assert.ok(!raw.includes('// nota,'));
+});
+
 test('add: jsonc — comentário na última linha do array não corrompe a inserção', () => {
   const dir = tmp();
   writeFileSync(join(dir, 'opencode.jsonc'), '{\n  "plugin": [\n    "@scope/a" // nota\n  ]\n}\n');
