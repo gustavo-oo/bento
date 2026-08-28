@@ -136,6 +136,21 @@ test('runEquivalence: camadas em falta → 1', () => {
   assert.equal(code, 1);
 });
 
+test('runEquivalence: camada intermediária fora da cadeia → 1', () => {
+  const dir = makeRepo();
+  commit(dir, { 'a.ts': '1\n' });
+  git(['checkout', '-b', 'feat'], dir);
+  commit(dir, { 'a.ts': '1\n2\n', 'b.ts': 'x\n', 'c.ts': 'y\n' });
+
+  git(['checkout', '-b', 'layer1', 'main'], dir);
+  commit(dir, { 'a.ts': '1\n2\n', 'b.ts': 'x\n' });
+  git(['checkout', '-b', 'layer2', 'main'], dir);
+  commit(dir, { 'a.ts': '1\n2\n', 'b.ts': 'x\n', 'c.ts': 'y\n' });
+
+  const code = runEquivalence({ base: 'main', head: 'feat', layers: ['layer1', 'layer2'], cwd: dir });
+  assert.equal(code, 1);
+});
+
 test('runEquivalence: sem camadas → 2', () => {
   const dir = makeRepo();
   commit(dir, { 'a.ts': '1\n' });
