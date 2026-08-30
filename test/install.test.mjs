@@ -94,6 +94,14 @@ test('uninstall: remove tudo do install e preserva AGENTS.md', () => {
   assert.ok(removed.includes('AGENTS.md'));
 });
 
+test('uninstall: remove a skill taste-skill', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-uninstall-taste-'));
+  install(dir, {});
+  const { removed } = uninstall(dir);
+  assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'taste-skill')));
+  assert.ok(removed.includes('.opencode/skills/taste-skill'));
+});
+
 test('uninstall: idempotente em projeto limpo', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-uninstall-clean-'));
   const { removed } = uninstall(dir);
