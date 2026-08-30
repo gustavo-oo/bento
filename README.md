@@ -13,6 +13,7 @@ node bin/bento.mjs update         # re-instala mantendo .pr-limits.yaml local
 
 Instala:
 - `.opencode/skills/small-prs/SKILL.md` — skill opencode (prevenção/validação/correção)
+- `.opencode/skills/taste-skill/SKILL.md` — skill opencode de design anti-slop (design-taste-frontend)
 - `scripts/pr-split-verify.mjs` — shim para `check` e `equivalence`
 - `.bento/` — lib + bin + skills + templates (atualizáveis com `bento update`)
 - `.pr-limits.yaml` — config (criada só se ausente; nunca sobrescrita)
@@ -32,6 +33,7 @@ node bin/bento.mjs uninstall    # remove tudo (idempotente)
 Remove:
 - `.bento/` — lib + bin + skills + templates
 - `.opencode/skills/small-prs/` — skill opencode
+- `.opencode/skills/taste-skill/` — skill opencode de design
 - `scripts/pr-split-verify.mjs` — shim (só se for do bento; arquivo do usuário com o mesmo nome é preservado)
 - `.pr-limits.yaml` — config
 - entrada do plugin superpowers no `opencode.json` (arquivo removido se ficar vazio)
