@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { addSuperpowersPlugin, removeSuperpowersPlugin, SUPERPOWERS_PLUGIN } from '../lib/opencode-config.mjs';
+import { addPlugin, addSuperpowersPlugin, removePlugin, removeSuperpowersPlugin, SUPERPOWERS_PLUGIN } from '../lib/opencode-config.mjs';
 
 function tmp() {
   return mkdtempSync(join(tmpdir(), 'bento-opencode-'));
@@ -356,4 +356,22 @@ test('remove: opencode.json é um diretório — avisa e não quebra', () => {
   const dir = tmp();
   mkdirSync(join(dir, 'opencode.json'));
   assert.equal(removeSuperpowersPlugin(dir), null);
+});
+
+test('addPlugin genérico: cria opencode.json com plugin arbitrário', () => {
+  const dir = tmp();
+  const r = addPlugin(dir, '@scope/third');
+  assert.ok(r);
+  assert.equal(r.changed, '@scope/third');
+  const obj = JSON.parse(readFileSync(r.path, 'utf8'));
+  assert.deepEqual(obj.plugin, ['@scope/third']);
+});
+
+test('removePlugin genérico: remove plugin arbitrário mantendo outros', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ plugin: ['@scope/a', '@scope/third'] }, null, 2));
+  const r = removePlugin(dir, '@scope/third');
+  assert.ok(r);
+  const obj = JSON.parse(readFileSync(r.path, 'utf8'));
+  assert.deepEqual(obj.plugin, ['@scope/a']);
 });
