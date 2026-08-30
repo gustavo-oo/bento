@@ -135,13 +135,15 @@ test('update --no-ponytail: adiciona só superpowers', () => {
   assert.deepEqual(obj.plugin, [SUPERPOWERS_PLUGIN]);
 });
 
-test('update --no-superpowers --no-ponytail: não toca opencode.json', () => {
+test('update --no-superpowers --no-ponytail --no-codegraph --no-agent-browser: não toca opencode.json', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
   writeFileSync(join(dir, 'opencode.json'), '{ "theme": "dark" }');
-  const r = spawnSync(process.execPath, [BIN, 'update', '--no-superpowers', '--no-ponytail'], { cwd: dir, encoding: 'utf8' });
+  const r = spawnSync(process.execPath, [BIN, 'update', '--no-superpowers', '--no-ponytail', '--no-codegraph', '--no-agent-browser'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0);
   assert.ok(!r.stdout.includes('superpowers'));
   assert.ok(!r.stdout.includes('ponytail'));
+  assert.ok(!r.stdout.includes('codegraph'));
+  assert.ok(!r.stdout.includes('agent-browser'));
   assert.equal(readFileSync(join(dir, 'opencode.json'), 'utf8'), '{ "theme": "dark" }');
 });
 
@@ -161,4 +163,45 @@ test('uninstall: remove ponytail do opencode.json', () => {
   assert.equal(r.status, 0);
   assert.ok(r.stdout.includes('ponytail'));
   assert.ok(!existsSync(join(dir, 'opencode.json')));
+});
+
+test('update: adiciona codegraph e agent-browser ao mcp do opencode.json', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  const r = spawnSync(process.execPath, [BIN, 'update'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.ok(r.stdout.includes('codegraph'));
+  assert.ok(r.stdout.includes('agent-browser'));
+  const obj = JSON.parse(readFileSync(join(dir, 'opencode.json'), 'utf8'));
+  assert.deepEqual(obj.mcp.codegraph.command, ['codegraph', 'serve', '--mcp']);
+  assert.deepEqual(obj.mcp['agent-browser'].command, ['agent-browser', 'mcp']);
+});
+
+test('update --no-codegraph: adiciona só agent-browser ao mcp', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  const r = spawnSync(process.execPath, [BIN, 'update', '--no-codegraph'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  const obj = JSON.parse(readFileSync(join(dir, 'opencode.json'), 'utf8'));
+  assert.equal(obj.mcp.codegraph, undefined);
+  assert.deepEqual(obj.mcp['agent-browser'].command, ['agent-browser', 'mcp']);
+});
+
+test('update --no-agent-browser: adiciona só codegraph ao mcp e não copia a skill', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  const r = spawnSync(process.execPath, [BIN, 'update', '--no-agent-browser'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  const obj = JSON.parse(readFileSync(join(dir, 'opencode.json'), 'utf8'));
+  assert.equal(obj.mcp['agent-browser'], undefined);
+  assert.deepEqual(obj.mcp.codegraph.command, ['codegraph', 'serve', '--mcp']);
+  assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'agent-browser', 'SKILL.md')));
+});
+
+test('uninstall: remove codegraph e agent-browser (mcp, skill, .codegraph) e sai 0', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  spawnSync(process.execPath, [BIN, 'update'], { cwd: dir, encoding: 'utf8' });
+  const r = spawnSync(process.execPath, [BIN, 'uninstall'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.ok(r.stdout.includes('codegraph'));
+  assert.ok(r.stdout.includes('agent-browser'));
+  assert.ok(!existsSync(join(dir, 'opencode.json')));
+  assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'agent-browser')));
 });
