@@ -102,3 +102,20 @@ test('uninstall: não apaga shim do usuário', () => {
   assert.equal(readFileSync(join(dir, 'scripts', 'pr-split-verify.mjs'), 'utf8'), userShim);
   assert.ok(!removed.includes('scripts/pr-split-verify.mjs'));
 });
+
+test('install: copia a skill agent-browser; noAgentBrowser pula', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
+  install(dir, {});
+  assert.ok(existsSync(join(dir, '.opencode', 'skills', 'agent-browser', 'SKILL.md')));
+  const dir2 = mkdtempSync(join(tmpdir(), 'bento-install-'));
+  install(dir2, { noAgentBrowser: true });
+  assert.ok(!existsSync(join(dir2, '.opencode', 'skills', 'agent-browser')));
+});
+
+test('uninstall: remove a skill agent-browser', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-uninstall-'));
+  install(dir, {});
+  const { removed } = uninstall(dir);
+  assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'agent-browser')));
+  assert.ok(removed.includes('.opencode/skills/agent-browser'));
+});
