@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { addPlugin, addSuperpowersPlugin, removePlugin, removeSuperpowersPlugin, SUPERPOWERS_PLUGIN } from '../lib/opencode-config.mjs';
+import { addPlugin, addPonytailPlugin, addSuperpowersPlugin, removePlugin, removePonytailPlugin, removeSuperpowersPlugin, PONYTAIL_PLUGIN, SUPERPOWERS_PLUGIN } from '../lib/opencode-config.mjs';
 
 function tmp() {
   return mkdtempSync(join(tmpdir(), 'bento-opencode-'));
@@ -374,4 +374,81 @@ test('removePlugin genérico: remove plugin arbitrário mantendo outros', () => 
   assert.ok(r);
   const obj = JSON.parse(readFileSync(r.path, 'utf8'));
   assert.deepEqual(obj.plugin, ['@scope/a']);
+});
+
+test('add ponytail: cria opencode.json com o plugin quando não existe config', () => {
+  const dir = tmp();
+  const r = addPonytailPlugin(dir);
+  assert.ok(r);
+  assert.equal(r.changed, PONYTAIL_PLUGIN);
+  assert.ok(r.path.endsWith('opencode.json'));
+  const obj = JSON.parse(readFileSync(r.path, 'utf8'));
+  assert.deepEqual(obj.plugin, [PONYTAIL_PLUGIN]);
+});
+
+test('add ponytail: preserva outras chaves e o plugin superpowers', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ theme: 'dark', plugin: [SUPERPOWERS_PLUGIN] }, null, 2));
+  const r = addPonytailPlugin(dir);
+  assert.ok(r);
+  const obj = JSON.parse(readFileSync(r.path, 'utf8'));
+  assert.deepEqual(obj.theme, 'dark');
+  assert.deepEqual(obj.plugin, [SUPERPOWERS_PLUGIN, PONYTAIL_PLUGIN]);
+});
+
+test('add ponytail: idempotente quando já presente', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ plugin: [PONYTAIL_PLUGIN] }, null, 2));
+  const before = readFileSync(join(dir, 'opencode.json'), 'utf8');
+  assert.equal(addPonytailPlugin(dir), null);
+  assert.equal(readFileSync(join(dir, 'opencode.json'), 'utf8'), before);
+});
+
+test('add ponytail: jsonc com comentários — preserva e adiciona ao array', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  // plugins do projeto\n  "plugin": [\n    "@scope/a"\n  ]\n}\n');
+  const r = addPonytailPlugin(dir);
+  assert.ok(r);
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes('// plugins do projeto'));
+  assert.ok(raw.includes('@scope/a'));
+  assert.ok(raw.includes(PONYTAIL_PLUGIN));
+});
+
+test('remove ponytail: remove só a entrada ponytail, mantém superpowers e outros', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ plugin: ['@scope/a', SUPERPOWERS_PLUGIN, PONYTAIL_PLUGIN] }, null, 2));
+  const r = removePonytailPlugin(dir);
+  assert.ok(r);
+  const obj = JSON.parse(readFileSync(r.path, 'utf8'));
+  assert.deepEqual(obj.plugin, ['@scope/a', SUPERPOWERS_PLUGIN]);
+});
+
+test('remove ponytail: plugin vazio após remoção — chave removida, resto preservado', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ plugin: [PONYTAIL_PLUGIN], theme: 'dark' }, null, 2));
+  const r = removePonytailPlugin(dir);
+  assert.ok(r);
+  const obj = JSON.parse(readFileSync(r.path, 'utf8'));
+  assert.equal(obj.plugin, undefined);
+  assert.equal(obj.theme, 'dark');
+});
+
+test('remove ponytail: arquivo {} após remoção — deletado', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ plugin: [PONYTAIL_PLUGIN] }, null, 2));
+  const r = removePonytailPlugin(dir);
+  assert.ok(r);
+  assert.ok(!existsSync(join(dir, 'opencode.json')));
+});
+
+test('add ponytail: jsonc com plugin em forma de string — avisa e não altera', (t) => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{ // x\n  "plugin": "@scope/only"\n}\n');
+  const before = readFileSync(join(dir, 'opencode.jsonc'), 'utf8');
+  const mock = t.mock.method(console, 'error', () => {});
+  assert.equal(addPonytailPlugin(dir), null);
+  assert.equal(mock.mock.callCount(), 1);
+  assert.ok(mock.mock.calls[0].arguments[0].includes('ponytail'));
+  assert.equal(readFileSync(join(dir, 'opencode.jsonc'), 'utf8'), before);
 });
