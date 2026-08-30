@@ -5,7 +5,7 @@ Catálogo pessoal do fluxo de opencode: skills, commands, scripts e configs — 
 ## Instalação (no projeto consumidor)
 
 ```bash
-node bin/bento.mjs install        # instala skill, scripts, .pr-limits.yaml, gh-stack, superpowers e ponytail
+node bin/bento.mjs install        # instala skill, scripts, .pr-limits.yaml, gh-stack, superpowers, ponytail, codegraph e agent-browser
 node bin/bento.mjs update         # re-instala mantendo .pr-limits.yaml local
 ```
 
@@ -13,11 +13,14 @@ node bin/bento.mjs update         # re-instala mantendo .pr-limits.yaml local
 
 Instala:
 - `.opencode/skills/small-prs/SKILL.md` — skill opencode (prevenção/validação/correção)
+- `.opencode/skills/agent-browser/SKILL.md` — skill opencode (stub do agent-browser)
 - `scripts/pr-split-verify.mjs` — shim para `check` e `equivalence`
 - `.bento/` — lib + bin + skills + templates (atualizáveis com `bento update`)
 - `.pr-limits.yaml` — config (criada só se ausente; nunca sobrescrita)
 - `superpowers` — plugin adicionado ao `opencode.json` (pule com `--no-superpowers`)
 - `ponytail` — plugin adicionado ao `opencode.json` (pule com `--no-ponytail`)
+- `codegraph` — CLI + MCP server no `opencode.json` (pule com `--no-codegraph`)
+- `agent-browser` — CLI + MCP server no `opencode.json` + skill (pule com `--no-agent-browser`)
 - seção `## Bento (small-prs)` no `AGENTS.md`
 - extensão `gh-stack` do GitHub CLI
 
@@ -36,6 +39,10 @@ Remove:
 - `.pr-limits.yaml` — config
 - entrada do plugin superpowers no `opencode.json` (arquivo removido se ficar vazio)
 - entrada do plugin ponytail no `opencode.json` (arquivo removido se ficar vazio)
+- entradas MCP (codegraph, agent-browser) no `opencode.json` (arquivo removido se ficar vazio)
+- `.opencode/skills/agent-browser/` — skill opencode
+- `.codegraph/` — index do codegraph
+- CLIs globais `codegraph` e `agent-browser` (`npm uninstall -g`; aviso se falhar)
 - seção `## Bento (small-prs)` no `AGENTS.md` (arquivo removido se ficar vazio)
 - extensão `gh-stack` do GitHub CLI (aviso se `gh` indisponível; sem falha)
 
