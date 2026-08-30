@@ -21,7 +21,7 @@ O `bento install` passa a inicializar também o [ponytail](https://github.com/Di
   - Resolução do arquivo: prefere `opencode.json`; se ausente, `opencode.jsonc`; se nenhum existe, cria `opencode.json` com `{ "plugin": ["<PONYTAIL_PLUGIN>"] }`.
   - **Caminho JSON estrito** (`JSON.parse` ok): parse → garante `plugin` como array (string vira `[string]`) → adiciona a entrada se nenhuma entrada existente começar com o prefixo → grava com `JSON.stringify(obj, null, 2) + '\n'`. Outras chaves preservadas.
   - **Caminho jsonc** (parse falha — comentários): se há chave `"plugin": [...]` (array), splice textual da entrada antes do `]`; se a chave não existe, insere `"plugin": ["..."]` como primeira chave; se a chave existe mas não é array (ex.: string), avisa no stderr e pula (não altera). Nunca deleta arquivo jsonc.
-  - Retorna `{ changed, path }`; `changed: null` se já presente (idempotente).
+  - Retorna `{ changed, path }` ou `null` se já presente (idempotente).
 - Output do install lista `ponytail → opencode.json`.
 
 ### uninstall
@@ -30,7 +30,7 @@ O `bento install` passa a inicializar também o [ponytail](https://github.com/Di
   - Remove apenas entradas cujo valor começa com `PONYTAIL_PLUGIN`; outros plugins preservados.
   - Caminho estrito: se `plugin` ficar `[]`, remove a chave; se o objeto ficar `{}`, deleta o arquivo.
   - Caminho jsonc: remove a entrada com ajuste de vírgula; se o array ficar vazio, remove a chave; nunca deleta o arquivo.
-  - Retorna `{ removed, path }`; `removed: null` se ausente.
+  - Retorna `{ removed, path }` ou `null` se ausente.
 
 ### Erros
 

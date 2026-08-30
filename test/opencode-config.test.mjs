@@ -420,8 +420,17 @@ test('remove ponytail: remove só a entrada ponytail, mantém superpowers e outr
   writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ plugin: ['@scope/a', SUPERPOWERS_PLUGIN, PONYTAIL_PLUGIN] }, null, 2));
   const r = removePonytailPlugin(dir);
   assert.ok(r);
+  assert.equal(r.removed, PONYTAIL_PLUGIN);
   const obj = JSON.parse(readFileSync(r.path, 'utf8'));
   assert.deepEqual(obj.plugin, ['@scope/a', SUPERPOWERS_PLUGIN]);
+});
+
+test('remove ponytail: ausente — retorna null e não altera', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ plugin: ['@scope/a'] }, null, 2));
+  const before = readFileSync(join(dir, 'opencode.json'), 'utf8');
+  assert.equal(removePonytailPlugin(dir), null);
+  assert.equal(readFileSync(join(dir, 'opencode.json'), 'utf8'), before);
 });
 
 test('remove ponytail: plugin vazio após remoção — chave removida, resto preservado', () => {
