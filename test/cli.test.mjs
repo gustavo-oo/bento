@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, existsSync, readFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -198,10 +198,13 @@ test('update --no-agent-browser: adiciona só codegraph ao mcp e não copia a sk
 test('uninstall: remove codegraph e agent-browser (mcp, skill, .codegraph) e sai 0', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
   spawnSync(process.execPath, [BIN, 'update'], { cwd: dir, encoding: 'utf8' });
+  mkdirSync(join(dir, '.codegraph'), { recursive: true });
   const r = spawnSync(process.execPath, [BIN, 'uninstall'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0);
   assert.ok(r.stdout.includes('codegraph'));
   assert.ok(r.stdout.includes('agent-browser'));
+  assert.ok(r.stdout.includes('.codegraph'));
   assert.ok(!existsSync(join(dir, 'opencode.json')));
   assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'agent-browser')));
+  assert.ok(!existsSync(join(dir, '.codegraph')));
 });

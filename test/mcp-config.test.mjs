@@ -139,3 +139,18 @@ test('add+remove: round-trip em jsonc com comentários volta a um estado válido
   assert.ok(back.includes('"theme": "dark"'));
   assert.ok(!back.includes('"codegraph"'));
 });
+
+test('remove: jsonc — entrada aninhada escrita à mão é removida sem corromper o arquivo', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  // servers do projeto\n  "mcp": {\n    // codegraph com env\n    "codegraph": {\n      "type": "local",\n      "env": { "NODE_ENV": "prod" }\n    },\n    "sentry": {\n      "type": "remote",\n      "url": "https://x"\n    }\n  }\n}\n');
+  const r = removeMcpServer(dir, 'codegraph');
+  assert.ok(r);
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes('"sentry"'));
+  assert.ok(!raw.includes('"codegraph"'));
+  assert.ok(!raw.includes('"env"'));
+  assert.ok(raw.includes('// servers do projeto'));
+  assert.ok(raw.includes('// codegraph com env'));
+  const obj = JSON.parse(raw.replace(/"(?:\\.|[^"\\])*"|\/\/[^\n]*/g, (m) => (m.startsWith('"') ? m : '')));
+  assert.deepEqual(obj.mcp, { sentry: { type: 'remote', url: 'https://x' } });
+});
