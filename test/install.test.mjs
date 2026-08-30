@@ -23,6 +23,14 @@ test('install: copia skill, shim, .bento e preserva .pr-limits.yaml existente', 
   assert.ok(readFileSync(join(dir, 'AGENTS.md'), 'utf8').includes('## Bento'));
 });
 
+test('install: copia a skill taste-skill para .opencode/skills/taste-skill', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-taste-'));
+  install(dir, {});
+  const vendada = readFileSync(new URL('../skills/taste-skill/SKILL.md', import.meta.url), 'utf8');
+  const copiada = readFileSync(join(dir, '.opencode', 'skills', 'taste-skill', 'SKILL.md'), 'utf8');
+  assert.equal(copiada, vendada);
+});
+
 test('install: cria .pr-limits.yaml quando ausente e é idempotente', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
   install(dir, {});
