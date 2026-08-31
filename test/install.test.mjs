@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { install, uninstall } from '../lib/install.mjs';
@@ -134,4 +134,19 @@ test('uninstall: remove a skill agent-browser', () => {
   const { removed } = uninstall(dir);
   assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'agent-browser')));
   assert.ok(removed.includes('.opencode/skills/agent-browser'));
+});
+
+test('install: copia hook pre-push executável em .bento/hooks', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
+  install(dir, {});
+  const hookPath = join(dir, '.bento', 'hooks', 'pre-push');
+  assert.ok(existsSync(hookPath));
+  assert.notEqual(statSync(hookPath).mode & 0o111, 0);
+  assert.ok(readFileSync(hookPath, 'utf8').includes('pr-split-verify.mjs check'));
+});
+
+test('install: noHooks não copia o hook', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
+  install(dir, { noHooks: true });
+  assert.ok(!existsSync(join(dir, '.bento', 'hooks', 'pre-push')));
 });
