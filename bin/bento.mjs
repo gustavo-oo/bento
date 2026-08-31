@@ -7,6 +7,7 @@ import { install, uninstall } from '../lib/install.mjs';
 import { addPonytailPlugin, addSuperpowersPlugin, removePonytailPlugin, removeSuperpowersPlugin } from '../lib/opencode-config.mjs';
 import { addMcpServer, removeMcpServer, CODEGRAPH_MCP, AGENT_BROWSER_MCP } from '../lib/mcp-config.mjs';
 import { ensureCodegraph, ensureAgentBrowser, initCodegraph, removeCodegraph, removeAgentBrowser } from '../lib/tools.mjs';
+import { setupPrePushHook, removePrePushHook } from '../lib/hooks.mjs';
 
 const [, , cmd, ...args] = process.argv;
 
@@ -25,6 +26,7 @@ function run() {
   const noAgents = args.includes('--no-agents');
   const noSuperpowers = args.includes('--no-superpowers');
   const noPonytail = args.includes('--no-ponytail');
+  const noHooks = args.includes('--no-hooks');
   const noCodegraph = args.includes('--no-codegraph');
   const noAgentBrowser = args.includes('--no-agent-browser');
   switch (cmd) {
@@ -34,10 +36,14 @@ function run() {
         process.exitCode = 1;
         return;
       }
-      const result = install(process.cwd(), { noAgents, noAgentBrowser });
+      const result = install(process.cwd(), { noAgents, noAgentBrowser, noHooks });
       console.log('bento instalado:');
       console.log(`  skill → ${result.skillDir}`);
       console.log(`  lib   → ${result.dotBento}`);
+      if (!noHooks) {
+        const h = setupPrePushHook(process.cwd());
+        if (h.status === 'installed') console.log('  pre-push → core.hooksPath (.bento/hooks)');
+      }
       if (!noSuperpowers) {
         const sp = addSuperpowersPlugin(process.cwd());
         if (sp) console.log(`  superpowers → ${sp.path}`);
@@ -60,7 +66,11 @@ function run() {
       return;
     }
     case 'update': {
-      install(process.cwd(), { noAgents, noAgentBrowser });
+      install(process.cwd(), { noAgents, noAgentBrowser, noHooks });
+      if (!noHooks) {
+        const h = setupPrePushHook(process.cwd());
+        if (h.status === 'installed') console.log('  pre-push → core.hooksPath (.bento/hooks)');
+      }
       if (!noSuperpowers) {
         const sp = addSuperpowersPlugin(process.cwd());
         if (sp) console.log(`  superpowers → ${sp.path}`);
@@ -88,6 +98,7 @@ function run() {
         console.error(`aviso: gh-stack não pôde ser removido (${detail})`);
       }
       const { removed } = uninstall(process.cwd());
+      const h = removePrePushHook(process.cwd());
       const sp = removeSuperpowersPlugin(process.cwd());
       const pt = removePonytailPlugin(process.cwd());
       const cg = removeMcpServer(process.cwd(), CODEGRAPH_MCP.name);
@@ -97,6 +108,7 @@ function run() {
       if (pt) all.push(`ponytail (${pt.path})`);
       if (cg) all.push(`codegraph (${cg.path})`);
       if (ab) all.push(`agent-browser (${ab.path})`);
+      if (h) all.push('pre-push (core.hooksPath)');
       const cgIndex = join(process.cwd(), '.codegraph');
       if (existsSync(cgIndex)) {
         rmSync(cgIndex, { recursive: true, force: true });
@@ -120,11 +132,11 @@ function run() {
       return;
     default:
       console.error(`uso: bento install|update|uninstall|check|equivalence
-  install          instala skill, scripts, config, gh-stack, superpowers, ponytail, codegraph e agent-browser no projeto
+  install          instala skill, scripts, config, hook pre-push, gh-stack, superpowers, ponytail, codegraph e agent-browser no projeto
                    (--no-agents pula AGENTS.md; --no-superpowers pula superpowers; --no-ponytail pula ponytail;
-                    --no-codegraph pula codegraph; --no-agent-browser pula agent-browser)
+                    --no-hooks pula o pre-push; --no-codegraph pula codegraph; --no-agent-browser pula agent-browser)
   update           re-instala mantendo .pr-limits.yaml (não toca gh-stack; não re-instala CLIs nem re-indexa codegraph)
-  uninstall        remove tudo do bento (gh-stack, .bento, skill, shim, config, plugins, mcp, .codegraph, CLIs, seção AGENTS.md)
+  uninstall        remove tudo do bento (gh-stack, .bento, skill, shim, config, pre-push, plugins, mcp, .codegraph, CLIs, seção AGENTS.md)
   check [base]     valida tamanho do diff (head = HEAD, base default = main)
   equivalence <base> <head> <camada1> [camada2 ...]
 `);

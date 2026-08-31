@@ -208,3 +208,33 @@ test('uninstall: remove codegraph e agent-browser (mcp, skill, .codegraph) e sai
   assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'agent-browser')));
   assert.ok(!existsSync(join(dir, '.codegraph')));
 });
+
+test('update: configura core.hooksPath em repo git', () => {
+  const dir = makeRepo();
+  const r = spawnSync(process.execPath, [BIN, 'update'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.ok(r.stdout.includes('pre-push'));
+  const hp = execFileSync('git', ['config', '--local', '--get', 'core.hooksPath'], { cwd: dir, encoding: 'utf8' }).trim();
+  assert.equal(hp, '.bento/hooks');
+});
+
+test('update --no-hooks: não configura hooksPath nem copia hook', () => {
+  const dir = makeRepo();
+  const r = spawnSync(process.execPath, [BIN, 'update', '--no-hooks'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.ok(!r.stdout.includes('pre-push'));
+  assert.ok(!existsSync(join(dir, '.bento', 'hooks', 'pre-push')));
+  const hp = spawnSync('git', ['config', '--local', '--get', 'core.hooksPath'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(hp.status, 1);
+});
+
+test('uninstall: remove core.hooksPath do bento', () => {
+  const dir = makeRepo();
+  const upd = spawnSync(process.execPath, [BIN, 'update'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(upd.status, 0);
+  const r = spawnSync(process.execPath, [BIN, 'uninstall'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.ok(r.stdout.includes('pre-push'));
+  const hp = spawnSync('git', ['config', '--local', '--get', 'core.hooksPath'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(hp.status, 1);
+});
