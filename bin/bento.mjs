@@ -7,7 +7,7 @@ import { install, uninstall } from '../lib/install.mjs';
 import { addPonytailPlugin, addSuperpowersPlugin, removePonytailPlugin, removeSuperpowersPlugin } from '../lib/opencode-config.mjs';
 import { addMcpServer, removeMcpServer, CODEGRAPH_MCP, AGENT_BROWSER_MCP } from '../lib/mcp-config.mjs';
 import { ensureCodegraph, ensureAgentBrowser, initCodegraph, removeCodegraph, removeAgentBrowser } from '../lib/tools.mjs';
-import { setupPrePushHook, removePrePushHook } from '../lib/hooks.mjs';
+import { setupPrePushHook, removePrePushHook, bentoHooksActive } from '../lib/hooks.mjs';
 
 const [, , cmd, ...args] = process.argv;
 
@@ -43,6 +43,8 @@ function run() {
       if (!noHooks) {
         const h = setupPrePushHook(process.cwd());
         if (h.status === 'installed') console.log('  pre-push → core.hooksPath (.bento/hooks)');
+      } else if (bentoHooksActive(process.cwd())) {
+        console.error('aviso: pre-push ainda ativo de um install anterior (core.hooksPath → .bento/hooks); rode update sem --no-hooks para atualizar o hook, ou uninstall para remover.');
       }
       if (!noSuperpowers) {
         const sp = addSuperpowersPlugin(process.cwd());
@@ -70,6 +72,8 @@ function run() {
       if (!noHooks) {
         const h = setupPrePushHook(process.cwd());
         if (h.status === 'installed') console.log('  pre-push → core.hooksPath (.bento/hooks)');
+      } else if (bentoHooksActive(process.cwd())) {
+        console.error('aviso: pre-push ainda ativo de um install anterior (core.hooksPath → .bento/hooks); rode update sem --no-hooks para atualizar o hook, ou uninstall para remover.');
       }
       if (!noSuperpowers) {
         const sp = addSuperpowersPlugin(process.cwd());

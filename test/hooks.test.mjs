@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, chmodSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { setupPrePushHook, removePrePushHook } from '../lib/hooks.mjs';
+import { setupPrePushHook, removePrePushHook, bentoHooksActive } from '../lib/hooks.mjs';
 import { install } from '../lib/install.mjs';
 
 function git(args, cwd) {
@@ -61,6 +61,33 @@ test('setup: hooksPath já aponta para o bento (./.bento/hooks/) → installed',
   assert.equal(localHooksPath(dir), './.bento/hooks/');
 });
 
+test('setup: falha ao escrever core.hooksPath em git config → skip config-write', (t) => {
+  const dir = makeRepo();
+  chmodSync(join(dir, '.git'), 0o555);
+  const mock = t.mock.method(console, 'error', () => {});
+  try {
+    const r = setupPrePushHook(dir);
+    assert.equal(r.status, 'skipped');
+    assert.equal(r.reason, 'config-write');
+    assert.equal(mock.mock.callCount(), 1);
+  } finally {
+    chmodSync(join(dir, '.git'), 0o755);
+  }
+});
+
+test('bentoHooksActive: ativo quando core.hooksPath aponta para o bento', () => {
+  const dir = makeRepo();
+  git(['config', '--local', 'core.hooksPath', '.bento/hooks'], dir);
+  assert.deepEqual(bentoHooksActive(dir), { active: true, value: '.bento/hooks' });
+});
+
+test('bentoHooksActive: null sem hooksPath ou apontando para outro lugar', () => {
+  const dir = makeRepo();
+  assert.equal(bentoHooksActive(dir), null);
+  git(['config', '--local', 'core.hooksPath', '.husky'], dir);
+  assert.equal(bentoHooksActive(dir), null);
+});
+
 test('setup: hook manual não-sample em .git/hooks → skip manual-hooks', (t) => {
   const dir = makeRepo();
   mkdirSync(join(dir, '.git', 'hooks'), { recursive: true });
@@ -97,6 +124,20 @@ test('remove: desconfigura quando aponta para o bento', () => {
   const r = removePrePushHook(dir);
   assert.deepEqual(r, { removed: true });
   assert.equal(localHooksPath(dir), null);
+});
+
+test('remove: falha ao desconfigurar → null + aviso, config preservado', (t) => {
+  const dir = makeRepo();
+  setupPrePushHook(dir);
+  chmodSync(join(dir, '.git'), 0o555);
+  const mock = t.mock.method(console, 'error', () => {});
+  try {
+    assert.equal(removePrePushHook(dir), null);
+    assert.equal(mock.mock.callCount(), 1);
+    assert.equal(localHooksPath(dir), '.bento/hooks');
+  } finally {
+    chmodSync(join(dir, '.git'), 0o755);
+  }
 });
 
 test('remove: não mexe em hooksPath de outro', () => {

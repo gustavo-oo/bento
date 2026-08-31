@@ -228,6 +228,17 @@ test('update --no-hooks: não configura hooksPath nem copia hook', () => {
   assert.equal(hp.status, 1);
 });
 
+test('update --no-hooks: avisa que o pre-push continua ativo de install anterior', () => {
+  const dir = makeRepo();
+  const first = spawnSync(process.execPath, [BIN, 'update'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(first.status, 0);
+  const r = spawnSync(process.execPath, [BIN, 'update', '--no-hooks'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.ok(r.stderr.includes('pre-push ainda ativo'));
+  const hp = execFileSync('git', ['config', '--local', '--get', 'core.hooksPath'], { cwd: dir, encoding: 'utf8' }).trim();
+  assert.equal(hp, '.bento/hooks');
+});
+
 test('uninstall: remove core.hooksPath do bento', () => {
   const dir = makeRepo();
   const upd = spawnSync(process.execPath, [BIN, 'update'], { cwd: dir, encoding: 'utf8' });
