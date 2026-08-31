@@ -24,6 +24,7 @@ node bin/bento.mjs check          # valida tamanho do diff main..HEAD
 - `lib/diff.mjs` — numstat via `git diff` (`execFileSync` com cwd parametrizável; testes usam repo fake).
 - `lib/opencode-config.mjs` — edita `opencode.json` E `opencode.jsonc` (roteia por extensão) preservando comentários; vírgulas/comentários têm testes dedicados.
 - `lib/validate.mjs` — `evaluate`/`runCheck`/`runEquivalence`; `lib/install.mjs` — install/uninstall + `packageRoot()`/`version()`.
+- `lib/hooks.mjs` — `setupPrePushHook`/`removePrePushHook`: config `core.hooksPath` → `.bento/hooks` (pula com aviso se já houver hooksPath de outro lugar ou hooks manuais em `.git/hooks`); `templates/hooks/pre-push` é a fonte do hook instalado.
 - Este repositório É a fonte do que é instalado em consumidores: mudanças em `lib/`, `templates/` ou `skills/` propagam via `bento install`/`update`.
 - `skills/taste-skill/SKILL.md` — venda do upstream https://github.com/Leonxlnx/taste-skill (commit `ccbc15639c97057cbfcf32ecebc38ef716e4bb37`, 24/08/2026, MIT). Atualização manual: re-copiar do commit novo e atualizar este bullet.
 
