@@ -5,6 +5,7 @@ import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setupPrePushHook, removePrePushHook } from '../lib/hooks.mjs';
+import { install } from '../lib/install.mjs';
 
 function git(args, cwd) {
   return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
@@ -108,4 +109,63 @@ test('remove: não mexe em hooksPath de outro', () => {
 test('remove: sem repo → null', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-hooks-'));
   assert.equal(removePrePushHook(dir), null);
+});
+
+function makeRemote() {
+  const remote = mkdtempSync(join(tmpdir(), 'bento-hooks-remote-'));
+  git(['init', '--bare', remote], remote);
+  return remote;
+}
+
+test('hook real: push acima do limite é bloqueado', () => {
+  const dir = makeRepo();
+  const remote = makeRemote();
+  git(['remote', 'add', 'origin', remote], dir);
+  writeFileSync(join(dir, 'f.txt'), 'v1\n');
+  git(['add', '-A'], dir);
+  git(['commit', '-m', 'base'], dir);
+  git(['checkout', '-b', 'feat'], dir);
+  writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 2\nmax_files: 10\n');
+  writeFileSync(join(dir, 'f.txt'), 'v1\nv2\nv3\nv4\n');
+  git(['add', '-A'], dir);
+  git(['commit', '-m', 'big'], dir);
+  install(dir, {});
+  setupPrePushHook(dir);
+  const r = spawnSync('git', ['push', '-u', 'origin', 'feat'], { cwd: dir, encoding: 'utf8' });
+  assert.notEqual(r.status, 0);
+  assert.ok(r.stderr.includes('PR GRANDE'));
+});
+
+test('hook real: push dentro dos limites passa', () => {
+  const dir = makeRepo();
+  const remote = makeRemote();
+  git(['remote', 'add', 'origin', remote], dir);
+  writeFileSync(join(dir, 'f.txt'), 'v1\n');
+  git(['add', '-A'], dir);
+  git(['commit', '-m', 'base'], dir);
+  git(['checkout', '-b', 'feat'], dir);
+  writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 10\nmax_files: 10\n');
+  writeFileSync(join(dir, 'f.txt'), 'v1\nv2\n');
+  git(['add', '-A'], dir);
+  git(['commit', '-m', 'small'], dir);
+  install(dir, {});
+  setupPrePushHook(dir);
+  const r = spawnSync('git', ['push', '-u', 'origin', 'feat'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+});
+
+test('hook real: sem main local → push não bloqueado', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-hooks-'));
+  git(['init', '-b', 'feat'], dir);
+  git(['config', 'user.email', 't@test'], dir);
+  git(['config', 'user.name', 't'], dir);
+  const remote = makeRemote();
+  git(['remote', 'add', 'origin', remote], dir);
+  writeFileSync(join(dir, 'f.txt'), 'v1\n');
+  git(['add', '-A'], dir);
+  git(['commit', '-m', 'first'], dir);
+  install(dir, {});
+  setupPrePushHook(dir);
+  const r = spawnSync('git', ['push', '-u', 'origin', 'feat'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
 });
