@@ -5,7 +5,7 @@ Catálogo pessoal do fluxo de opencode: skills, commands, scripts e configs — 
 ## Instalação (no projeto consumidor)
 
 ```bash
-node bin/bento.mjs install        # instala skill, scripts, .pr-limits.yaml, gh-stack, superpowers, ponytail, codegraph e agent-browser
+node bin/bento.mjs install        # instala skill, scripts, .pr-limits.yaml, pre-push, gh-stack, superpowers, ponytail, codegraph e agent-browser
 node bin/bento.mjs update         # re-instala mantendo .pr-limits.yaml local
 ```
 
@@ -18,6 +18,7 @@ Instala:
 - `scripts/pr-split-verify.mjs` — shim para `check` e `equivalence`
 - `.bento/` — lib + bin + skills + templates (atualizáveis com `bento update`)
 - `.pr-limits.yaml` — config (criada só se ausente; nunca sobrescrita)
+- `.bento/hooks/pre-push` + `core.hooksPath` — hook que bloqueia push com diff acima dos limites (pule com `--no-hooks`; config local por clone; `git push --no-verify` burla — conveniência, não segurança)
 - `superpowers` — plugin adicionado ao `opencode.json` (pule com `--no-superpowers`)
 - `ponytail` — plugin adicionado ao `opencode.json` (pule com `--no-ponytail`)
 - `codegraph` — CLI + MCP server no `opencode.json` (pule com `--no-codegraph`)
@@ -39,6 +40,7 @@ Remove:
 - `.opencode/skills/taste-skill/` — skill opencode de design
 - `scripts/pr-split-verify.mjs` — shim (só se for do bento; arquivo do usuário com o mesmo nome é preservado)
 - `.pr-limits.yaml` — config
+- `core.hooksPath` apontando para `.bento/hooks` (só se for do bento)
 - entrada do plugin superpowers no `opencode.json` (arquivo removido se ficar vazio)
 - entrada do plugin ponytail no `opencode.json` (arquivo removido se ficar vazio)
 - entradas MCP (codegraph, agent-browser) no `opencode.json` (arquivo removido se ficar vazio)
@@ -55,6 +57,8 @@ bento check [base]                                  # valida o diff (default: ma
 bento equivalence <base> <head> <camada1> [camada2 …] # prova que as camadas somam o diff original
 node scripts/pr-split-verify.mjs check              # idem (via shim instalado)
 ```
+
+O pre-push roda `check` (base `main`) automaticamente a cada `git push`; acima do limite o push é abortado.
 
 Exit codes: `0` ok, `1` violação/divergência, `2` uso inválido.
 
