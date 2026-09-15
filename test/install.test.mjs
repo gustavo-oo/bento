@@ -150,3 +150,75 @@ test('install: noHooks não copia o hook', () => {
   install(dir, { noHooks: true });
   assert.ok(!existsSync(join(dir, '.bento', 'hooks', 'pre-push')));
 });
+
+test('install: venda as 14 skills do superpowers (diretório completo)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-vendored-install-'));
+  install(dir, {});
+  const src = readFileSync(new URL('../skills/brainstorming/SKILL.md', import.meta.url), 'utf8');
+  const dest = readFileSync(join(dir, '.opencode', 'skills', 'brainstorming', 'SKILL.md'), 'utf8');
+  assert.equal(dest, src);
+  assert.ok(existsSync(join(dir, '.opencode', 'skills', 'brainstorming', 'visual-companion.md')));
+  assert.ok(existsSync(join(dir, '.opencode', 'skills', 'using-superpowers', 'references', 'pi-tools.md')));
+});
+
+test('install: preserva skill vendada divergente e avisa', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-vendored-install-'));
+  mkdirSync(join(dir, '.opencode', 'skills', 'writing-plans'), { recursive: true });
+  writeFileSync(join(dir, '.opencode', 'skills', 'writing-plans', 'SKILL.md'), '# meu\n');
+  const mock = t.mock.method(console, 'error', () => {});
+  install(dir, {});
+  assert.equal(readFileSync(join(dir, '.opencode', 'skills', 'writing-plans', 'SKILL.md'), 'utf8'), '# meu\n');
+  assert.ok(mock.mock.calls.some((c) => c.arguments[0].includes('conteúdo diferente')));
+});
+
+test('install: noSuperpowers não venda skills nem cria o agent superpowers', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-vendored-install-'));
+  install(dir, { noSuperpowers: true });
+  assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'brainstorming')));
+  assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'superpowers.md')));
+  assert.ok(existsSync(join(dir, '.opencode', 'agents', 'flash.md')));
+});
+
+test('install: noProfile não cria agents do perfil; noCodegraph/noAgentBrowser pulam explorer/browser', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-agents-install-'));
+  install(dir, { noProfile: true });
+  assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'flash.md')));
+  assert.ok(existsSync(join(dir, '.opencode', 'skills', 'brainstorming')));
+  const dir2 = mkdtempSync(join(tmpdir(), 'bento-agents-install-'));
+  install(dir2, { noCodegraph: true, noAgentBrowser: true });
+  assert.ok(!existsSync(join(dir2, '.opencode', 'agents', 'explorer.md')));
+  assert.ok(!existsSync(join(dir2, '.opencode', 'agents', 'browser.md')));
+  assert.ok(existsSync(join(dir2, '.opencode', 'agents', 'flash.md')));
+});
+
+test('install: cria agents com marcador e não sobrescreve existente', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-agents-install-'));
+  mkdirSync(join(dir, '.opencode', 'agents'), { recursive: true });
+  writeFileSync(join(dir, '.opencode', 'agents', 'flash.md'), '---\n# bento: agent v1\ndescription: meu\n---\nmeu corpo\n');
+  install(dir, {});
+  assert.ok(readFileSync(join(dir, '.opencode', 'agents', 'flash.md'), 'utf8').includes('meu corpo'));
+  assert.ok(readFileSync(join(dir, '.opencode', 'agents', 'verify.md'), 'utf8').includes('# bento: agent'));
+});
+
+test('uninstall: remove skills vendadas idênticas e preserva divergentes', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-vendored-uninstall-'));
+  install(dir, {});
+  writeFileSync(join(dir, '.opencode', 'skills', 'writing-plans', 'SKILL.md'), '# modificada\n');
+  const mock = t.mock.method(console, 'error', () => {});
+  const { removed } = uninstall(dir);
+  assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'brainstorming')));
+  assert.ok(removed.includes('.opencode/skills/brainstorming'));
+  assert.ok(existsSync(join(dir, '.opencode', 'skills', 'writing-plans')));
+  assert.ok(!removed.includes('.opencode/skills/writing-plans'));
+  assert.ok(mock.mock.calls.some((c) => c.arguments[0].includes('modificada')));
+});
+
+test('uninstall: remove agents com marcador e preserva agent do usuário', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-agents-uninstall-'));
+  install(dir, {});
+  writeFileSync(join(dir, '.opencode', 'agents', 'meu.md'), '---\ndescription: user\n---\n');
+  const { removed } = uninstall(dir);
+  assert.ok(removed.includes('.opencode/agents/flash.md'));
+  assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'flash.md')));
+  assert.ok(existsSync(join(dir, '.opencode', 'agents', 'meu.md')));
+});
