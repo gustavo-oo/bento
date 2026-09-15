@@ -222,3 +222,16 @@ test('uninstall: remove agents com marcador e preserva agent do usuário', () =>
   assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'flash.md')));
   assert.ok(existsSync(join(dir, '.opencode', 'agents', 'meu.md')));
 });
+
+test('install: atualiza venda nossa desatualizada e uninstall remove depois', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-vendored-update-'));
+  install(dir, {});
+  writeFileSync(join(dir, '.opencode', 'skills', 'brainstorming', 'SKILL.md'), '# v-old\n');
+  writeFileSync(join(dir, '.bento', 'skills', 'brainstorming', 'SKILL.md'), '# v-old\n');
+  install(dir, {});
+  const src = readFileSync(new URL('../skills/brainstorming/SKILL.md', import.meta.url), 'utf8');
+  assert.equal(readFileSync(join(dir, '.opencode', 'skills', 'brainstorming', 'SKILL.md'), 'utf8'), src);
+  const { removed } = uninstall(dir);
+  assert.ok(removed.includes('.opencode/skills/brainstorming'));
+  assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'brainstorming')));
+});
