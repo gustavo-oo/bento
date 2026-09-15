@@ -679,3 +679,23 @@ test('remove: jsonc — "plugin" apenas em comentário não é removido', () => 
   assert.equal(removeSuperpowersPlugin(dir), null);
   assert.equal(readFileSync(join(dir, 'opencode.jsonc'), 'utf8'), before);
 });
+
+test('add: jsonc — valor real string e comentário com "plugin" array não corrompe o config', (t) => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), `{\n  // "plugin": ["${SUPERPOWERS_PLUGIN}"]\n  "plugin": "@scope/only"\n}\n`);
+  const before = readFileSync(join(dir, 'opencode.jsonc'), 'utf8');
+  const mock = t.mock.method(console, 'error', () => {});
+  assert.equal(addSuperpowersPlugin(dir), null);
+  assert.equal(mock.mock.callCount(), 1);
+  assert.equal(readFileSync(join(dir, 'opencode.jsonc'), 'utf8'), before);
+});
+
+test('remove: jsonc — valor real string e comentário com "plugin" array não remove o comentário', (t) => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), `{\n  // "plugin": ["${SUPERPOWERS_PLUGIN}"]\n  "plugin": "@scope/only"\n}\n`);
+  const before = readFileSync(join(dir, 'opencode.jsonc'), 'utf8');
+  const mock = t.mock.method(console, 'error', () => {});
+  assert.equal(removeSuperpowersPlugin(dir), null);
+  assert.equal(mock.mock.callCount(), 1);
+  assert.equal(readFileSync(join(dir, 'opencode.jsonc'), 'utf8'), before);
+});
