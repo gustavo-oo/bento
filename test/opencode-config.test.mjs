@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { addPlugin, addPonytailPlugin, addSuperpowersPlugin, removePlugin, removePonytailPlugin, removeSuperpowersPlugin, PONYTAIL_PLUGIN, SUPERPOWERS_PLUGIN } from '../lib/opencode-config.mjs';
+import { addPlugin, addPonytailPlugin, addSuperpowersPlugin, removePlugin, removePonytailPlugin, removeSuperpowersPlugin, setDefaultAgentIfAbsent, removeDefaultAgentIf, BENTO_DEFAULT_AGENT, PONYTAIL_PLUGIN, SUPERPOWERS_PLUGIN } from '../lib/opencode-config.mjs';
 
 function tmp() {
   return mkdtempSync(join(tmpdir(), 'bento-opencode-'));
@@ -460,4 +460,127 @@ test('add ponytail: jsonc com plugin em forma de string — avisa e não altera'
   assert.equal(mock.mock.callCount(), 1);
   assert.ok(mock.mock.calls[0].arguments[0].includes('ponytail'));
   assert.equal(readFileSync(join(dir, 'opencode.jsonc'), 'utf8'), before);
+});
+
+test('default_agent: set cria opencode.json quando não existe config', () => {
+  const dir = tmp();
+  const r = setDefaultAgentIfAbsent(dir);
+  assert.ok(r);
+  assert.equal(r.changed, 'default_agent');
+  const obj = JSON.parse(readFileSync(r.path, 'utf8'));
+  assert.equal(obj.default_agent, BENTO_DEFAULT_AGENT);
+});
+
+test('default_agent: set define quando ausente e preserva outras chaves', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ theme: 'dark' }, null, 2));
+  const r = setDefaultAgentIfAbsent(dir, 'flash');
+  assert.ok(r);
+  const obj = JSON.parse(readFileSync(r.path, 'utf8'));
+  assert.equal(obj.default_agent, 'flash');
+  assert.equal(obj.theme, 'dark');
+});
+
+test('default_agent: set com valor presente — skip, avisa e não altera', (t) => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ default_agent: 'build' }, null, 2));
+  const before = readFileSync(join(dir, 'opencode.json'), 'utf8');
+  const mock = t.mock.method(console, 'error', () => {});
+  const r = setDefaultAgentIfAbsent(dir);
+  assert.deepEqual(r, { skipped: true, value: 'build' });
+  assert.equal(mock.mock.callCount(), 1);
+  assert.ok(mock.mock.calls[0].arguments[0].includes('já definido'));
+  assert.equal(readFileSync(join(dir, 'opencode.json'), 'utf8'), before);
+});
+
+test('default_agent: set em jsonc insere preservando comentários', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  // topo\n  "theme": "dark"\n}\n');
+  const r = setDefaultAgentIfAbsent(dir);
+  assert.ok(r);
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes('// topo'));
+  assert.ok(raw.includes('"theme": "dark"'));
+  assert.ok(raw.includes('"default_agent": "flash"'));
+});
+
+test('default_agent: set em jsonc com chave presente — skip', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  // c\n  "default_agent": "build"\n}\n');
+  const before = readFileSync(join(dir, 'opencode.jsonc'), 'utf8');
+  const r = setDefaultAgentIfAbsent(dir);
+  assert.deepEqual(r, { skipped: true, value: 'build' });
+  assert.equal(readFileSync(join(dir, 'opencode.jsonc'), 'utf8'), before);
+});
+
+test('default_agent: set com json inválido — avisa e não altera', (t) => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), 'isso não é json');
+  const mock = t.mock.method(console, 'error', () => {});
+  assert.equal(setDefaultAgentIfAbsent(dir), null);
+  assert.equal(readFileSync(join(dir, 'opencode.json'), 'utf8'), 'isso não é json');
+  assert.equal(mock.mock.callCount(), 1);
+});
+
+test('default_agent: set edita o .json quando os dois existem', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), '{}');
+  writeFileSync(join(dir, 'opencode.jsonc'), '{ // c\n}\n');
+  const r = setDefaultAgentIfAbsent(dir);
+  assert.ok(r.path.endsWith('opencode.json'));
+  assert.ok(readFileSync(join(dir, 'opencode.jsonc'), 'utf8').includes('// c'));
+});
+
+test('default_agent: remove só com valor igual; arquivo {} é deletado', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ default_agent: 'flash' }, null, 2));
+  const r = removeDefaultAgentIf(dir);
+  assert.ok(r);
+  assert.ok(!existsSync(join(dir, 'opencode.json')));
+});
+
+test('default_agent: remove preserva outras chaves', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ default_agent: 'flash', theme: 'dark' }, null, 2));
+  const r = removeDefaultAgentIf(dir);
+  assert.ok(r);
+  const obj = JSON.parse(readFileSync(r.path, 'utf8'));
+  assert.equal(obj.default_agent, undefined);
+  assert.equal(obj.theme, 'dark');
+});
+
+test('default_agent: remove com valor diferente — null e inalterado', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ default_agent: 'build' }, null, 2));
+  const before = readFileSync(join(dir, 'opencode.json'), 'utf8');
+  assert.equal(removeDefaultAgentIf(dir), null);
+  assert.equal(readFileSync(join(dir, 'opencode.json'), 'utf8'), before);
+});
+
+test('default_agent: remove em jsonc preserva comentários e não deleta arquivo', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  // nota\n  "default_agent": "flash",\n  "theme": "dark"\n}\n');
+  const r = removeDefaultAgentIf(dir);
+  assert.ok(r);
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes('// nota'));
+  assert.ok(raw.includes('"theme": "dark"'));
+  assert.ok(!raw.includes('default_agent'));
+  assert.ok(existsSync(r.path));
+});
+
+test('default_agent: remove em jsonc sozinho vira {} escrito', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  "default_agent": "flash"\n}\n');
+  const r = removeDefaultAgentIf(dir);
+  assert.ok(r);
+  assert.equal(readFileSync(r.path, 'utf8'), '{}\n');
+});
+
+test('default_agent: remove com json inválido — avisa e não altera', (t) => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), '{ "default_agent": }');
+  const mock = t.mock.method(console, 'error', () => {});
+  assert.equal(removeDefaultAgentIf(dir), null);
+  assert.equal(mock.mock.callCount(), 1);
 });
