@@ -584,3 +584,98 @@ test('default_agent: remove com json inválido — avisa e não altera', (t) => 
   assert.equal(removeDefaultAgentIf(dir), null);
   assert.equal(mock.mock.callCount(), 1);
 });
+
+test('default_agent: set em jsonc ignora chave apenas comentada', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  // "default_agent": "build"\n  "theme": "dark"\n}\n');
+  const r = setDefaultAgentIfAbsent(dir);
+  assert.ok(r);
+  assert.equal(r.changed, 'default_agent');
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes('// "default_agent": "build"'));
+  assert.match(raw, /^\s*"default_agent"\s*:\s*"flash"/m);
+});
+
+test('default_agent: set em jsonc ignora chave em comentário de bloco', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  /* "default_agent": "build" */\n  "theme": "dark"\n}\n');
+  const r = setDefaultAgentIfAbsent(dir);
+  assert.ok(r);
+  assert.equal(r.changed, 'default_agent');
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes('/* "default_agent": "build" */'));
+  assert.match(raw, /^\s*"default_agent"\s*:\s*"flash"/m);
+});
+
+test('default_agent: set em jsonc com chave real e comentada — skip com o valor real', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  // "default_agent": "build"\n  "default_agent": "flash"\n}\n');
+  const before = readFileSync(join(dir, 'opencode.jsonc'), 'utf8');
+  const r = setDefaultAgentIfAbsent(dir);
+  assert.deepEqual(r, { skipped: true, value: 'flash' });
+  assert.equal(readFileSync(join(dir, 'opencode.jsonc'), 'utf8'), before);
+});
+
+test('default_agent: remove em jsonc com chave apenas comentada — null e inalterado', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  // "default_agent": "flash"\n  "theme": "dark"\n}\n');
+  const before = readFileSync(join(dir, 'opencode.jsonc'), 'utf8');
+  assert.equal(removeDefaultAgentIf(dir), null);
+  assert.equal(readFileSync(join(dir, 'opencode.jsonc'), 'utf8'), before);
+});
+
+test('default_agent: remove em jsonc com chave real e comentada — preserva o comentário', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  // "default_agent": "build"\n  "default_agent": "flash",\n  "theme": "dark"\n}\n');
+  const r = removeDefaultAgentIf(dir);
+  assert.ok(r);
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes('// "default_agent": "build"'));
+  assert.ok(raw.includes('"theme": "dark"'));
+  assert.ok(!raw.includes('"default_agent": "flash"'));
+  assert.ok(!raw.includes(','));
+});
+
+test('add: jsonc — "plugin" apenas em comentário não conta como presente', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  // "plugin": ["@scope/a"]\n  "theme": "dark"\n}\n');
+  const r = addSuperpowersPlugin(dir);
+  assert.ok(r);
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes('// "plugin": ["@scope/a"]'));
+  assert.ok(raw.includes('"theme": "dark"'));
+  assert.ok(raw.includes(SUPERPOWERS_PLUGIN));
+  assert.match(raw, /^\s*"plugin"\s*:/m);
+});
+
+test('add: jsonc — string com URL não é tratada como comentário na detecção', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  // exemplo: "plugin": ["@scope/old"]\n  "url": "https://x", "plugin": ["@scope/a"]\n}\n');
+  const r = addSuperpowersPlugin(dir);
+  assert.ok(r);
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes('// exemplo: "plugin": ["@scope/old"]'));
+  assert.ok(raw.includes('"@scope/a"'));
+  assert.ok(raw.includes(SUPERPOWERS_PLUGIN));
+  assert.equal(raw.match(/"plugin"\s*:/g).length, 2);
+});
+
+test('add: jsonc — chave { em comentário não desloca a inserção', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '// { anotação\n{\n  "a": 1\n}\n');
+  const r = addSuperpowersPlugin(dir);
+  assert.ok(r);
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes('// { anotação'));
+  assert.ok(raw.includes('"a": 1'));
+  assert.ok(raw.includes(SUPERPOWERS_PLUGIN));
+  assert.match(raw, /^\s*"plugin"\s*:/m);
+});
+
+test('remove: jsonc — "plugin" apenas em comentário não é removido', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  // "plugin": ["' + SUPERPOWERS_PLUGIN + '"]\n  "theme": "dark"\n}\n');
+  const before = readFileSync(join(dir, 'opencode.jsonc'), 'utf8');
+  assert.equal(removeSuperpowersPlugin(dir), null);
+  assert.equal(readFileSync(join(dir, 'opencode.jsonc'), 'utf8'), before);
+});
