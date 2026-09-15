@@ -1,6 +1,6 @@
 # AGENTS.md — bento
 
-CLI que instala/atualiza/remove, num projeto consumidor, o fluxo opencode pessoal: skill `small-prs` (limites de PR + split), plugins (superpowers, ponytail), MCP servers (codegraph, agent-browser), skills vendadas (agent-browser, taste-skill) e hook pre-push.
+CLI que instala/atualiza/remove, num projeto consumidor, o fluxo opencode pessoal: skill `small-prs` (limites de PR + split), plugin ponytail, 14 skills vendadas do superpowers com agents escopados (`flash`, `superpowers`, `explorer`, `verify`, `browser`), MCP servers (codegraph, agent-browser), skill agent-browser/taste-skill e hook pre-push.
 
 ## Commands
 
@@ -13,7 +13,7 @@ node bin/bento.mjs check            # valida tamanho do diff main..HEAD
 ## CLI (bin/bento.mjs)
 
 - `install` atua num projeto consumidor e exige `gh` (instala a extensão gh-stack) → exit 1 sem `gh`; `update` NÃO toca gh-stack.
-- `install`/`update` copiam `lib/`, `bin/`, `skills/`, `templates/` para `.bento/` (+ `.bento/VERSION`), criam `.opencode/skills/small-prs`, `.opencode/skills/taste-skill` e (salvo flag) `agent-browser`, o shim `scripts/pr-split-verify.mjs`, `.pr-limits.yaml` (só se ausente) e a seção `## Bento (small-prs)` no AGENTS.md.
+- `install`/`update` copiam `lib/`, `bin/`, `skills/`, `templates/` para `.bento/` (+ `.bento/VERSION`), vendam as 14 skills do superpowers, criam os agents escopados em `.opencode/agents/` e o `default_agent` (só se ausente), removem o plugin superpowers de instalações antigas e criam as skills do bento (`.opencode/skills/small-prs`, `taste-skill` e, salvo flag, `agent-browser`), o shim `scripts/pr-split-verify.mjs`, `.pr-limits.yaml` (só se ausente) e a seção `## Bento (small-prs)` no AGENTS.md.
 - Flags de install/update: `--no-agents`, `--no-superpowers` (pula skills vendadas + agent superpowers; não mexe no plugin), `--no-profile` (pula agents de perfil + `default_agent`), `--no-ponytail`, `--no-hooks`, `--no-codegraph`, `--no-agent-browser`.
 - Plugins e MCP vão para `opencode.json`/`opencode.jsonc`; só `install` instala os CLIs globais e roda `codegraph init` — `update` não instala CLIs nem re-indexa o codegraph.
 - `--no-hooks` com hook de install anterior ativo emite aviso no stderr (o `core.hooksPath` permanece).
