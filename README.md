@@ -1,6 +1,6 @@
 # bento
 
-CLI do fluxo opencode pessoal: instala e mantém, num projeto consumidor, a skill `small-prs` (limites de tamanho de PR + split em camadas), os plugins superpowers e ponytail, os MCP servers codegraph e agent-browser, as skills agent-browser e taste-skill e um hook pre-push.
+CLI do fluxo opencode pessoal: instala e mantém, num projeto consumidor, a skill `small-prs` (limites de tamanho de PR + split em camadas), o plugin ponytail, as skills vendadas do superpowers e agents escopados, os MCP servers codegraph e agent-browser, as skills agent-browser e taste-skill e um hook pre-push.
 
 ## Instalação (no projeto consumidor)
 
@@ -21,7 +21,9 @@ Instala:
 - `.bento/` — lib + bin + skills + templates + `VERSION` (atualizáveis com `bento update`)
 - `.pr-limits.yaml` — config (criada só se ausente; nunca sobrescrita)
 - `.bento/hooks/pre-push` + `core.hooksPath` — hook que bloqueia push com diff acima dos limites (pule com `--no-hooks`; config local por clone; `git push --no-verify` burla — conveniência, não segurança)
-- `superpowers` — plugin adicionado ao `opencode.json`/`.jsonc` (pule com `--no-superpowers`)
+- `.opencode/skills/` — 14 skills do superpowers vendadas (v6.1.1, MIT; pule com `--no-superpowers`)
+- `.opencode/agents/` — agents `flash` (padrão), `superpowers`, `explorer`, `verify`, `browser` (pule com `--no-profile`; `explorer`/`browser` seguem `--no-codegraph`/`--no-agent-browser`)
+- `default_agent: flash` no `opencode.json`/`.jsonc` — só se ausente (pule com `--no-profile`)
 - `ponytail` — plugin adicionado ao `opencode.json`/`.jsonc` (pule com `--no-ponytail`)
 - `codegraph` — CLI global `@colbymchenry/codegraph`, MCP server (`codegraph serve --mcp`) e `codegraph init` (pule com `--no-codegraph`)
 - `agent-browser` — CLI global + Chrome, MCP server (`agent-browser mcp`) e skill (pule com `--no-agent-browser`)
@@ -41,10 +43,13 @@ Remove:
 - `.opencode/skills/small-prs/` — skill opencode
 - `.opencode/skills/taste-skill/` — skill opencode de design
 - `.opencode/skills/agent-browser/` — skill opencode
+- `.opencode/skills/<skill vendada>/` — só se idêntica à cópia instalada (modificadas são preservadas)
+- `.opencode/agents/*.md` — só agents com o marcador do bento (os seus são preservados)
+- `default_agent` do `opencode.json`/`.jsonc` — só se for `flash` e o agent removido era do bento
 - `scripts/pr-split-verify.mjs` — shim (só se for do bento; arquivo do usuário com o mesmo nome é preservado)
 - `.pr-limits.yaml` — config
 - `core.hooksPath` apontando para `.bento/hooks` (só se for do bento)
-- entradas do plugin superpowers e ponytail no `opencode.json`/`.jsonc` (arquivo removido se ficar vazio)
+- entradas dos plugins (inclui a remoção do plugin superpowers de instalações antigas) no `opencode.json`/`.jsonc` (arquivo removido se ficar vazio)
 - entradas MCP (codegraph, agent-browser) no `opencode.json`/`.jsonc` (arquivo removido se ficar vazio)
 - `.codegraph/` — index do codegraph
 - CLIs globais `codegraph` e `agent-browser` (`npm uninstall -g`; aviso se falhar)
@@ -68,6 +73,8 @@ Exit codes: `0` ok, `1` violação/divergência, `2` uso inválido.
 1. **Prevenção** — ao planejar (superpowers:writing-plans), 1 task = 1 slice de PR (testes junto, refactor ≠ feature, ≤400 linhas/10 arquivos).
 2. **Validação** — antes de abrir PR, rode `check`; acima do limite o PR é bloqueado.
 3. **Correção** — com aprovação: split em camadas coerentes, equivalência verificada, entrega em cadeia via `gh stack push`/`gh stack submit` (alias `gs` disponível via `gh stack alias`, opcional).
+
+Os agents escopados organizam o uso: `flash` (padrão enxuto), `superpowers` (skills completas), `explorer`, `verify` e `browser`. Troque com Tab; edite os `.md` em `.opencode/agents/` para ajustar modelo/temperatura.
 
 ## Config `.pr-limits.yaml`
 

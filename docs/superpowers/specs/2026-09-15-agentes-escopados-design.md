@@ -185,7 +185,8 @@ Idempotente; `bento: nada para remover.` quando aplicável.
 - `templates/agents/{flash,superpowers,explorer,verify,browser}.md` (novos).
 - `lib/agents.mjs` (novo): `installAgents(root, opts)`, `removeAgents(root)`, `AGENT_MARKER` e detecção; copy com aviso de conflito.
 - `lib/opencode-config.mjs`: `setDefaultAgentIfAbsent` / `removeDefaultAgentIf`.
-- `lib/install.mjs`: constante `VENDORED_SKILLS` + cópia/remoção/byte-compare; orquestração das flags e condicionais (codegraph/agent-browser); remoção do plugin superpowers no install/update.
+- `lib/install.mjs`: orquestração das flags/condicionais (codegraph/agent-browser); remoção do plugin superpowers no install/update.
+- `lib/vendored-skills.mjs` (novo): `VENDORED_SKILLS`, cópia/remoção por árvore idêntica (`sameTree`).
 - `lib/uninstall.mjs` (hoje dentro de install.mjs): passos novos na ordem acima.
 - `bin/bento.mjs`: flags `--no-profile`; help atualizado.
 - `templates/agents-section.md`: parágrafo sobre os agents, troca via Tab e quando usar cada um.
