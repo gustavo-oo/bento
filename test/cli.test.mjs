@@ -310,3 +310,12 @@ test('uninstall: remove core.hooksPath do bento', () => {
   const hp = spawnSync('git', ['config', '--local', '--get', 'core.hooksPath'], { cwd: dir, encoding: 'utf8' });
   assert.equal(hp.status, 1);
 });
+
+test('update --no-superpowers: preserva plugin superpowers pré-existente', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ plugin: [SUPERPOWERS_PLUGIN] }, null, 2));
+  const r = spawnSync(process.execPath, [BIN, 'update', '--no-superpowers'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  const obj = JSON.parse(readFileSync(join(dir, 'opencode.json'), 'utf8'));
+  assert.ok(obj.plugin.includes(SUPERPOWERS_PLUGIN));
+});
