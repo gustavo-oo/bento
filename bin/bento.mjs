@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { runCheck, runEquivalence } from '../lib/validate.mjs';
 import { install, uninstall } from '../lib/install.mjs';
 import { hasBentoAgent } from '../lib/agents.mjs';
-import { addPonytailPlugin, removePonytailPlugin, removeSuperpowersPlugin, setDefaultAgentIfAbsent, removeDefaultAgentIf } from '../lib/opencode-config.mjs';
+import { addPonytailPlugin, removePonytailPlugin, removeSuperpowersPlugin, setDefaultAgentIfAbsent, removeDefaultAgentIf, addInstructionsEntry, removeInstructionsEntry, OUTPUT_STYLE_INSTRUCTIONS } from '../lib/opencode-config.mjs';
 import { addMcpServer, removeMcpServer, CODEGRAPH_MCP, AGENT_BROWSER_MCP } from '../lib/mcp-config.mjs';
 import { ensureCodegraph, ensureAgentBrowser, initCodegraph, removeCodegraph, removeAgentBrowser } from '../lib/tools.mjs';
 import { setupPrePushHook, removePrePushHook, bentoHooksActive } from '../lib/hooks.mjs';
@@ -31,6 +31,7 @@ function run() {
   const noHooks = args.includes('--no-hooks');
   const noCodegraph = args.includes('--no-codegraph');
   const noAgentBrowser = args.includes('--no-agent-browser');
+  const noOutputStyle = args.includes('--no-output-style');
   switch (cmd) {
     case 'install': {
       if (!ensureGhStack()) {
@@ -38,7 +39,7 @@ function run() {
         process.exitCode = 1;
         return;
       }
-      const result = install(process.cwd(), { noAgents, noAgentBrowser, noHooks, noSuperpowers, noProfile, noCodegraph });
+      const result = install(process.cwd(), { noAgents, noAgentBrowser, noHooks, noSuperpowers, noProfile, noCodegraph, noOutputStyle });
       console.log('bento instalado:');
       console.log(`  skill → ${result.skillDir}`);
       console.log(`  lib   → ${result.dotBento}`);
@@ -66,6 +67,10 @@ function run() {
         const pt = addPonytailPlugin(process.cwd());
         if (pt) console.log(`  ponytail → ${pt.path}`);
       }
+      if (!noOutputStyle) {
+        const st = addInstructionsEntry(process.cwd());
+        if (st) console.log(`  instructions → ${OUTPUT_STYLE_INSTRUCTIONS}`);
+      }
       if (!noCodegraph) {
         ensureCodegraph();
         const cg = addMcpServer(process.cwd(), CODEGRAPH_MCP.name, CODEGRAPH_MCP.command);
@@ -80,7 +85,7 @@ function run() {
       return;
     }
     case 'update': {
-      const result = install(process.cwd(), { noAgents, noAgentBrowser, noHooks, noSuperpowers, noProfile, noCodegraph });
+      const result = install(process.cwd(), { noAgents, noAgentBrowser, noHooks, noSuperpowers, noProfile, noCodegraph, noOutputStyle });
       if (!noHooks) {
         const h = setupPrePushHook(process.cwd());
         if (h.status === 'installed') console.log('  pre-push → core.hooksPath (.bento/hooks)');
@@ -104,6 +109,10 @@ function run() {
       if (!noPonytail) {
         const pt = addPonytailPlugin(process.cwd());
         if (pt) console.log(`  ponytail → ${pt.path}`);
+      }
+      if (!noOutputStyle) {
+        const st = addInstructionsEntry(process.cwd());
+        if (st) console.log(`  instructions → ${OUTPUT_STYLE_INSTRUCTIONS}`);
       }
       if (!noCodegraph) {
         const cg = addMcpServer(process.cwd(), CODEGRAPH_MCP.name, CODEGRAPH_MCP.command);
@@ -131,11 +140,13 @@ function run() {
       const h = removePrePushHook(process.cwd());
       const sp = removeSuperpowersPlugin(process.cwd());
       const pt = removePonytailPlugin(process.cwd());
+      const st = removeInstructionsEntry(process.cwd());
       const cg = removeMcpServer(process.cwd(), CODEGRAPH_MCP.name);
       const ab = removeMcpServer(process.cwd(), AGENT_BROWSER_MCP.name);
       const all = [...removed];
       if (sp) all.push(`superpowers (${sp.path})`);
       if (pt) all.push(`ponytail (${pt.path})`);
+      if (st) all.push(`instructions (${st.path})`);
       if (cg) all.push(`codegraph (${cg.path})`);
       if (ab) all.push(`agent-browser (${ab.path})`);
       if (h) all.push('pre-push (core.hooksPath)');
@@ -162,12 +173,13 @@ function run() {
       return;
     default:
       console.error(`uso: bento install|update|uninstall|check|equivalence
-  install          instala skill, scripts, config, hook pre-push, gh-stack, skills vendadas do superpowers, agents, ponytail, codegraph e agent-browser no projeto
+  install          instala skill, scripts, config, hook pre-push, gh-stack, skills vendadas do superpowers, agents, ponytail, codegraph, agent-browser e o output style (instructions) no projeto
                    (--no-agents pula AGENTS.md; --no-superpowers pula skills vendadas/agent superpowers (não mexe no plugin);
                     --no-profile pula os agents do bento e o default_agent; --no-ponytail pula ponytail;
-                    --no-hooks pula o pre-push; --no-codegraph pula codegraph; --no-agent-browser pula agent-browser)
+                    --no-hooks pula o pre-push; --no-codegraph pula codegraph; --no-agent-browser pula agent-browser;
+                    --no-output-style pula a skill i-have-adhd e a entrada em instructions (não revoga install anterior; use uninstall para remover))
   update           re-instala mantendo .pr-limits.yaml (não toca gh-stack; não re-instala CLIs nem re-indexa codegraph)
-  uninstall        remove tudo do bento (gh-stack, .bento, skills, agents, shim, config, pre-push, plugins, mcp, .codegraph, CLIs, seção AGENTS.md)
+  uninstall        remove tudo do bento (gh-stack, .bento, skills, agents, shim, config, pre-push, plugins, output style, mcp, .codegraph, CLIs, seção AGENTS.md)
   check [base]     valida tamanho do diff (head = HEAD, base default = main)
   equivalence <base> <head> <camada1> [camada2 ...]
 `);
