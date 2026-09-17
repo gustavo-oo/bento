@@ -1,6 +1,6 @@
 # bento
 
-CLI do fluxo opencode pessoal: instala e mantém, num projeto consumidor, a skill `small-prs` (limites de PR + stack viva por sessão), o plugin ponytail, as skills vendadas do superpowers e agents escopados, os MCP servers codegraph e agent-browser, as skills agent-browser e taste-skill e um hook pre-push stack-aware.
+CLI do fluxo opencode pessoal: instala e mantém, num projeto consumidor, a skill `small-prs` (limites de PR + stack viva por sessão), o plugin ponytail, as skills vendadas do superpowers e agents escopados, os MCP servers codegraph e agent-browser, as skills agent-browser e taste-skill, o estilo de saída direto (skill `i-have-adhd` + `instructions` always-on) e um hook pre-push stack-aware.
 
 ## Instalação (no projeto consumidor)
 
@@ -17,6 +17,7 @@ Instala:
 - `.opencode/skills/small-prs/SKILL.md` — skill opencode (prevenção/validação/correção)
 - `.opencode/skills/taste-skill/SKILL.md` — skill opencode de design anti-slop (design-taste-frontend)
 - `.opencode/skills/agent-browser/SKILL.md` — stub da skill agent-browser (pule com `--no-agent-browser`)
+- `.opencode/skills/i-have-adhd/SKILL.md` + `.opencode/instructions/i-have-adhd.md` — estilo de saída direto, always-on via chave `instructions` do `opencode.json`/`.jsonc` (pule com `--no-output-style`; a flag pula, não revoga — use uninstall para remover)
 - `scripts/pr-split-verify.mjs` — shim para `check` e `equivalence`
 - `.bento/` — lib + bin + skills + templates + `VERSION` (atualizáveis com `bento update`)
 - `.pr-limits.yaml` — config (criada só se ausente; nunca sobrescrita)
@@ -43,6 +44,7 @@ Remove:
 - `.opencode/skills/small-prs/` — skill opencode
 - `.opencode/skills/taste-skill/` — skill opencode de design
 - `.opencode/skills/agent-browser/` — skill opencode
+- `.opencode/skills/i-have-adhd/` e `.opencode/instructions/i-have-adhd.md` — output style (e a entrada em `instructions` no `opencode.json`/`.jsonc`)
 - `.opencode/skills/<skill vendada>/` — só se idêntica à cópia instalada (modificadas são preservadas)
 - `.opencode/agents/*.md` — só agents com o marcador do bento (os seus são preservados)
 - `default_agent` do `opencode.json`/`.jsonc` — só se for `flash` e o agent removido era do bento
