@@ -87,3 +87,11 @@ Verificação manual (não vira teste, muta o repo):
 - Versionar `.bento/`, `.opencode/`, `opencode.json`.
 - CI do repo (spec própria) e mudanças da stack-viva (fora desta slice).
 - Rodar o dogfood em CI.
+
+## Adendo (2026-09-17, trunk atual)
+
+- O trunk (`origin/main`, `3f0c6eb`) já integra a stack-viva (hook stack-aware, `runCheckPush`, `check-push`); a base da execução é o `origin/main` e a dependência de sequenciamento está satisfeita.
+- O shim versionado do repo **já suporta `check-push`** (entrou com o trunk); esta slice só adiciona o smoke test que faltava.
+- Regra nova do repo: artefatos produzidos a partir de 2026-09-17 em **inglês** (mensagens de CLI, docs, nomes de testes novos e commits); esta spec e o plano ficam como históricos em PT-BR.
+- `.bento.yaml` (novo desde o trunk) também é versionado, como `.pr-limits.yaml`: é config copiada do template só se ausente e removida pelo `uninstall`.
+- A flag `--no-shim` convive com o perfil atual de flags (`--no-output-style` etc.); `install`/`update` atualizam `README.md` **e** `AGENT_INSTALL.md` juntos (regra do repo).
