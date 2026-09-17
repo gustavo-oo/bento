@@ -254,3 +254,11 @@ test('install: atualiza venda nossa desatualizada e uninstall remove depois', ()
   assert.ok(removed.includes('.opencode/skills/brainstorming'));
   assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'brainstorming')));
 });
+
+test('install: shim tem check-push para o hook stack-aware', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
+  install(dir, {});
+  const shim = readFileSync(join(dir, 'scripts', 'pr-split-verify.mjs'), 'utf8');
+  assert.ok(shim.includes('check-push'));
+  assert.ok(shim.includes('../.bento/lib/validate.mjs'));
+});
