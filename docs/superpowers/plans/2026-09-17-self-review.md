@@ -285,15 +285,17 @@ Na mesma mensagem, um `task` para `verify` (R1) e um para `reviewer` (R2), cada 
 > Leia o pacote `<caminho do package>` — é sua única visão do que mudou; o contexto dele basta. Se precisar de algo fora dele, nomeie o risco antes de olhar e diga o que checou no relatório. Contrato: <spec/brief/descrição>.
 > Mandato: <R1: regressão/correção — o diff cumpre o contrato e nada quebra o existente> | <R2: adversarial — bordas, inputs hostis, ESM/CJS, plataforma, symlink/worktree, snapshot/cache, legado, interação entre arquivos>.
 > Limites do projeto: `.pr-limits.yaml`. Read-only: não altere working tree, index, HEAD ou branches; pode rodar no máximo um teste focado.
-> Para cada achado: `arquivo:linha`, severidade (High/Medium/Low), o que está errado, impacto e **repro** (teste focado que falha por comportamento) quando High/Medium. Sem repro, classifique Low.
+> Para cada achado: `arquivo:linha`, severidade (High/Medium/Low), o que está errado, impacto e **repro** (trecho de teste focado que falha por comportamento) quando High/Medium. Sem repro, classifique Low.
 > Formato final: veredito (aprovar | needs fixes), achados e confiança.
+
+Os revisores são read-only: a repro chega como trecho no relatório; transcreva verbatim para `$dir/repro-<id>.test.mjs`, confirme o RED e só então despache a validação cruzada.
 
 R1 e R2 não veem o relatório um do outro. Se `verify` e `reviewer` estiverem com `model` diferentes, a complementaridade é maior.
 
 ## 2. Merge e validação cruzada
 
 - Deduplique por `arquivo:linha` + tipo; achado proposto pelos dois já está confirmado.
-- High/Medium proposto por um revisor: despache **o outro** para validar executando a repro (teste focado, nunca a suíte inteira) e emitir `confirmed` ou `disputed`.
+- High/Medium proposto por um revisor: despache **o outro** para validar executando a repro já materializada (teste focado, nunca a suíte inteira) e emitir `confirmed` ou `disputed`.
 - Divergência de existência/severidade: rodada focada (os dois sobre a mesma repro). Persistindo, pergunte ao dev mostrando as duas evidências.
 
 ## 3. Ledger (fonte da verdade)

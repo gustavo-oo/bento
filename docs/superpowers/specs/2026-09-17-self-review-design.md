@@ -57,12 +57,12 @@ Estados do gate: `preparado → rodada 1 → merge/validação → decisão → 
 Despachar R1 e R2 em paralelo, cada um com o pacote, o contrato e `.pr-limits.yaml`. Cada achado tem:
 
 - `arquivo:linha`, severidade, o que está errado e por que importa;
-- **repro** para high/medium: teste focado que falha por comportamento (não por `ERR_MODULE_NOT_FOUND`), no formato `node --test <arquivo>` de preferência, para o reviewer validar depois.
+- **repro** para high/medium: teste focado que falha por comportamento (não por `ERR_MODULE_NOT_FOUND`), no formato `node --test <arquivo>` de preferência. O revisor é read-only: entrega a repro como trecho de teste no achado; o agente primário transcreve verbatim para `.superpowers/self-review/<slug>/repro-<id>.test.mjs` e confirma o RED antes da validação cruzada.
 
 ### 3. Merge e validação cruzada
 
 - Deduplicar por local + tipo. Achado proposto pelos dois já está confirmado.
-- Cada high/medium é validado pelo revisor que **não** o propôs, executando a repro (teste focado, nunca a suíte inteira).
+- Cada high/medium é validado pelo revisor que **não** o propôs, executando a repro já materializada (teste focado, nunca a suíte inteira).
 - Concordância → `confirmed`. Divergência de existência/severidade → rodada focada: ambos revisam a repro e emitem veredito; persistindo, o dev decide com a evidência dos dois registrada no ledger.
 
 ### 4. Política de decisão
