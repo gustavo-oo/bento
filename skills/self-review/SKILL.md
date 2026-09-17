@@ -16,7 +16,7 @@ Use before `finishing-a-development-branch`/submit, or when the dev asks "review
 ## 0. Unit and preparation
 
 1. Define the unit: task, stack layer, or branch (default on demand: current branch). Record `base` and `head` with `git rev-parse`.
-2. Check the size: `node scripts/pr-split-verify.mjs check <base> <head>` (or `bento check <base> <head>`). If it violates `.pr-limits.yaml`, **stop**: the unit needs a split with the `small-prs` skill before review. Reviewing a giant diff is theater.
+2. Check the size: `node scripts/pr-split-verify.mjs check <base> <head>` (or `bento check <base> <head>`). If it violates `.bento.yaml`, **stop**: the unit needs a split with the `small-prs` skill before review. Reviewing a giant diff is theater.
 3. Create the unit directory, outside git:
 
 ```bash
@@ -49,7 +49,7 @@ In the same message, one `task` for `verify` (R1) and one for `reviewer` (R2), e
 
 > Read the package `<package path>`: it is your single view of what changed; its context is enough. If you need something outside it, name the risk before looking and say what you checked in the report. Contract: <spec/brief/description>.
 > Mandate: <R1: regression/correction: the diff fulfills the contract and nothing breaks the existing> | <R2: adversarial: edges, hostile inputs, ESM/CJS, platform, symlink/worktree, snapshot/cache, legacy, interaction between files>.
-> Project limits: `.pr-limits.yaml`. Read-only: do not change the working tree, index, HEAD, or branches; you may run at most one focused test.
+> Project limits: `.bento.yaml`. Read-only: do not change the working tree, index, HEAD, or branches; you may run at most one focused test.
 > For each finding: `file:line`, severity (High/Medium/Low), what is wrong, impact, and **repro** (focused test snippet that fails on behavior) when High/Medium. Without repro, classify Low.
 > Severity per the Severity section of this skill (bands + anti-downgrade).
 > Final format: verdict (approve | needs fixes), findings, and confidence.

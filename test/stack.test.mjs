@@ -32,7 +32,7 @@ function lines(n) {
 
 function makeStack(cwd, { limits = null, layerLines = 1 } = {}) {
   commit(cwd, 'base.txt', 'v1\n', 'base');
-  if (limits) commit(cwd, '.pr-limits.yaml', limits, 'limits');
+  if (limits) commit(cwd, '.bento.yaml', limits, 'limits');
   git(['checkout', '-b', 'L1'], cwd);
   const l1 = commit(cwd, 'l1.txt', lines(layerLines), 'l1');
   git(['checkout', '-b', 'L2'], cwd);
@@ -105,7 +105,7 @@ test('resolveStackBases: branches no mesmo commit resolvem para main, não um pa
 test('runCheckPush: refs no mesmo commit avaliam contra main e bloqueiam diff grande', (t) => {
   const dir = makeRepo();
   commit(dir, 'base.txt', 'v1\n', 'base');
-  commit(dir, '.pr-limits.yaml', 'max_lines: 2\nmax_files: 10\n', 'limits');
+  commit(dir, '.bento.yaml', 'max_lines: 2\nmax_files: 10\n', 'limits');
   git(['checkout', '-b', 'feat'], dir);
   const shared = commit(dir, 'shared.txt', lines(4), 'shared');
   git(['checkout', '-b', 'feat-copy'], dir);
@@ -147,7 +147,7 @@ test('runCheckPush: camadas dentro do limite, somadas acima do teto, passam', (t
 test('runCheckPush: camada acima do limite bloqueia e reporta a camada', (t) => {
   const dir = makeRepo();
   commit(dir, 'base.txt', 'v1\n', 'base');
-  commit(dir, '.pr-limits.yaml', 'max_lines: 6\nmax_files: 10\n', 'limits');
+  commit(dir, '.bento.yaml', 'max_lines: 6\nmax_files: 10\n', 'limits');
   git(['checkout', '-b', 'L1'], dir);
   const l1 = commit(dir, 'l1.txt', lines(3), 'l1');
   git(['checkout', '-b', 'L2'], dir);
@@ -171,7 +171,7 @@ test('runCheckPush: camada acima do limite bloqueia e reporta a camada', (t) => 
 test('runCheckPush: branch única mantém o comportamento contra main', (t) => {
   const dir = makeRepo();
   commit(dir, 'base.txt', 'v1\n', 'base');
-  commit(dir, '.pr-limits.yaml', 'max_lines: 2\nmax_files: 10\n', 'limits');
+  commit(dir, '.bento.yaml', 'max_lines: 2\nmax_files: 10\n', 'limits');
   git(['checkout', '-b', 'feat'], dir);
   const feat = commit(dir, 'f.txt', lines(4), 'big');
   t.mock.method(console, 'log', () => {});

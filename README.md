@@ -27,7 +27,7 @@ Paste this into your coding agent (opencode, Claude Code, Codex, Cursor…):
 Install bento in this project: clone https://github.com/gustavo-oo/bento into a temp directory, read AGENT_INSTALL.md, and follow its instructions to the letter.
 ```
 
-The agent checks the prerequisites, shows exactly what it will create (and what it will install outside your project), runs the install, and verifies the result.
+The agent checks the prerequisites, asks you which language it should use for generated artifacts (PR bodies, commits, docs, specs; default English), shows exactly what it will create (and what it will install outside your project), runs the install, and verifies the result.
 
 ### Manually
 
@@ -38,9 +38,11 @@ Requirements: Node >= 18 and an authenticated GitHub CLI (`gh`); `install` uses 
 git clone https://github.com/gustavo-oo/bento /tmp/bento-src
 
 # 2. from the root of your consumer project
-node /tmp/bento-src/bin/bento.mjs install   # installs everything
-node /tmp/bento-src/bin/bento.mjs update    # re-installs, keeping your .pr-limits.yaml
+node /tmp/bento-src/bin/bento.mjs install   # installs everything; asks for the artifact language
+node /tmp/bento-src/bin/bento.mjs update    # re-installs, keeping your .bento.yaml
 ```
+
+On a terminal, `install` asks which language agents must use for generated artifacts (PR bodies, commit messages, docs, specs, plans; default English) and writes it to `.bento.yaml`. Non-interactive installs skip the question; pass `--language "Portuguese (pt-BR)"` to set it instead. `update` never prompts and keeps your `.bento.yaml`.
 
 > Not on npm yet; once it is, `npx bento install` will work too. After the first install, `node .bento/bin/bento.mjs update` is all you need.
 
@@ -58,14 +60,13 @@ node /tmp/bento-src/bin/bento.mjs update    # re-installs, keeping your .pr-limi
 | `i-have-adhd` output style | Skill + always-on `instructions`: direct answers, next action first | `--no-output-style` |
 | `small-prs` skill | Prevents, validates, and fixes oversized PRs; knows how to split them into layers | n/a |
 | pre-push hook | Stack-aware: checks every pushed branch against its stack base and aborts over the limit | `--no-hooks` |
-| `.pr-limits.yaml` | Your PR limits (created only if missing, never overwritten) | n/a |
-| `.bento.yaml` | Language for generated artifacts: PR bodies, commits, docs, specs (created only if missing) | n/a |
+| `.bento.yaml` | Single config: PR limits + language for generated artifacts: PR bodies, commits, docs, specs (`install` asks for the language; created only if missing) | n/a |
 | `scripts/pr-split-verify.mjs` shim | Shortcut for `check`, `check-push`, and `equivalence` at the project root | n/a |
 | `.bento/` | Pinned copy of the CLI (lib, bin, templates, skills) for local `update` | n/a |
 | `## Bento (small-prs)` section in `AGENTS.md` | The workflow rules your agent reads in every project | `--no-agents` |
 | `gh-stack` extension | Delivers layered PR stacks (`gh stack push/submit`) | install only |
 
-`update` is more conservative than `install`: it preserves your `.pr-limits.yaml` and `.bento.yaml`, leaves `gh-stack` alone, doesn't reinstall global CLIs, doesn't re-index codegraph, and never touches existing agents or your `## Bento` section.
+`update` is more conservative than `install`: it preserves your `.bento.yaml`, leaves `gh-stack` alone, doesn't reinstall global CLIs, doesn't re-index codegraph, and never touches existing agents or your `## Bento` section.
 
 ## 🤖 Agents
 
@@ -113,11 +114,12 @@ Exit codes: `0` ok, `1` violation/divergence, `2` invalid usage. Tip: before `ch
 
 The pre-push hook validates each pushed branch against the base of its own stack, resolved by ancestry among the pushed refs (no stack: `main`). It's local config per clone (`core.hooksPath → .bento/hooks`), and `git push --no-verify` bypasses it: convenience, not security. If the repo already has manual hooks or a `core.hooksPath` owned by something else (husky/lefthook), bento warns and leaves it alone.
 
-### Limits
+### Limits and language
 
-`.pr-limits.yaml`:
+Everything lives in a single `.bento.yaml`:
 
 ```yaml
+artifacts_language: English
 max_lines: 400
 max_files: 10
 overrides:
@@ -125,7 +127,7 @@ overrides:
     max_lines: 200
 ```
 
-`max_lines` and `max_files` apply to the whole diff; each `override` sums the files matching its glob into its own group with a separate limit. The parser intentionally supports only this syntax; it's pure regex, no YAML dependency.
+`max_lines` and `max_files` apply to the whole diff; each `override` sums the files matching its glob into its own group with a separate limit. `artifacts_language` is the language agents use for PR bodies, commit messages, docs, specs, and plans. The parser intentionally supports only this syntax; it's pure regex, no YAML dependency. Upgrading from an older install, `install`/`update` merges a legacy `.pr-limits.yaml` into `.bento.yaml` and removes it.
 
 ## 🔁 Update & uninstall
 

@@ -35,8 +35,10 @@ gh auth status
 
 Summarize in a few lines:
 
-- **In the project**: creates/updates `.bento/` (lib, bin, skills, templates, `VERSION`), `.opencode/` (skills, agents, instructions), `scripts/pr-split-verify.mjs`, `.pr-limits.yaml` (created only if missing), `.bento.yaml` (artifact language, created only if missing), the `## Bento (small-prs)` section in `AGENTS.md`, and keys in `opencode.json`/`opencode.jsonc` (ponytail plugin, MCPs, `default_agent`, and `instructions`).
+- **In the project**: creates/updates `.bento/` (lib, bin, skills, templates, `VERSION`), `.opencode/` (skills, agents, instructions), `scripts/pr-split-verify.mjs`, `.bento.yaml` (single config: PR limits + artifact language; created only if missing), the `## Bento (small-prs)` section in `AGENTS.md`, and keys in `opencode.json`/`opencode.jsonc` (ponytail plugin, MCPs, `default_agent`, and `instructions`).
 - **Outside the project**: `npm install -g` for `@colbymchenry/codegraph` and `agent-browser`; the `gh-stack` extension; `git config core.hooksPath .bento/hooks` (local config per clone); `codegraph init` creates `.codegraph/`.
+
+Then ask the human which language agents must use for generated artifacts (PR bodies, commit messages, docs, specs, and plans). Default: English. If `.bento.yaml` already exists, show the current `artifacts_language` and only ask if they want to change it.
 
 If the human wants to skip something, use the matching flag:
 
@@ -56,9 +58,10 @@ If the human wants to skip something, use the matching flag:
 From the root of the consumer project (not from inside the clone):
 
 ```bash
-node "$BENTO_SRC/bin/bento.mjs" install
+node "$BENTO_SRC/bin/bento.mjs" install --language "<chosen language>"
 ```
 
+- Pass the answer to the language question as `--language "<value>"`. Omit the flag to keep the default (English) or the existing `.bento.yaml`. `--language` requires a value.
 - Standard output lists every installed piece. Capture it for the report.
 - Exit codes: `0` ok, `1` failure (e.g. `gh` unavailable), `2` invalid usage.
 - Never run `cd "$BENTO_SRC" && node bin/bento.mjs install`: that would install bento into its own source repo.
@@ -75,8 +78,9 @@ test -f .opencode/skills/taste-skill/SKILL.md
 test -f .opencode/agents/flash.md
 test -f .opencode/agents/reviewer.md
 test -f scripts/pr-split-verify.mjs
-test -f .pr-limits.yaml
 test -f .bento.yaml
+grep -q '^artifacts_language:' .bento.yaml
+grep -q '^max_lines:' .bento.yaml
 grep -q '^## Bento (small-prs)' AGENTS.md
 test -x .bento/hooks/pre-push
 test "$(git config core.hooksPath)" = ".bento/hooks"
@@ -95,6 +99,7 @@ Suggested report format (in the human's language):
 ```text
 bento installed (version <VERSION>)
 - flags: none
+- artifacts language: Portuguese (pt-BR)
 - pre-push hook: active (core.hooksPath → .bento/hooks)
 - next steps:
   - restart opencode to load the plugin, MCPs, and agents;
@@ -104,6 +109,6 @@ bento installed (version <VERSION>)
 
 ## After installation
 
-- **Update**: `node .bento/bin/bento.mjs update` preserves `.pr-limits.yaml` and your edits to the agents; it does not touch `gh-stack`, reinstall global CLIs, or re-index codegraph.
+- **Update**: `node .bento/bin/bento.mjs update` preserves `.bento.yaml` and your edits to the agents (a legacy `.pr-limits.yaml` is merged into `.bento.yaml`); it does not touch `gh-stack`, reinstall global CLIs, or re-index codegraph.
 - **Uninstall**: `node .bento/bin/bento.mjs uninstall`.
 - Do not edit `.bento/` by hand: it is replaced on the next `update`.

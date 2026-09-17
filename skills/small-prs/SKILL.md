@@ -1,6 +1,6 @@
 ---
 name: small-prs
-description: Prevents, validates, fixes, and reviews oversized PRs in the opencode (superpowers) workflow. Use when planning (session roadmap + stack layers), when executing plans (live stack - gh stack add per task + check per layer; violation = stop), before opening a PR (pr-split-verify), when a standalone diff exceeds the .pr-limits.yaml limits (chained split via gh-stack), and for independent per-layer review (clean subagents).
+description: Prevents, validates, fixes, and reviews oversized PRs in the opencode (superpowers) workflow. Use when planning (session roadmap + stack layers), when executing plans (live stack - gh stack add per task + check per layer; violation = stop), before opening a PR (pr-split-verify), when a standalone diff exceeds the .bento.yaml limits (chained split via gh-stack), and for independent per-layer review (clean subagents).
 ---
 
 # small-prs: prevention, validation, correction, and review of oversized PRs
@@ -30,7 +30,7 @@ Each task in the plan is a layer of a gh-stack stack; declare the table:
 - Branch pattern `split/<slug>/<nn>-<name>`; 1 acceptance criterion per layer.
 - Tests travel with the code they validate; refactor separate from feature; migration together with the code it serves.
 - Estimate files/lines per layer: a layer whose estimate already exceeds the limit is split **before** execution.
-- Default limit: <=400 diff lines and <=10 files per PR (see .pr-limits.yaml).
+- Default limit: <=400 diff lines and <=10 files per PR (see .bento.yaml).
 - Declare dependencies and delivery order between layers.
 
 ## Mode 1.5: Live-stack execution
@@ -87,7 +87,7 @@ For EACH stack layer, BEFORE `gh stack submit`:
 2. Generate the layer review package (layer diff against its base, with context) and save it to a file: OUTSIDE the repo (e.g. temp dir).
 3. Dispatch a CLEAN reviewer subagent (zero session context: no split history) with:
    - the diff file (single source of what changed),
-   - the `.pr-limits.yaml` limits,
+   - the `.bento.yaml` limits,
    - the PR title/description as the contract,
    - the layer NAMED worktree (absolute path),
    - **the baseline of pre-existing lint per file** (e.g. "base had 5 no-explicit-any in X.ts: only the NEW ones are defects"), to avoid false positives from files touched by earlier layers,
