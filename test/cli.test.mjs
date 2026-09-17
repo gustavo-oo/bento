@@ -118,6 +118,8 @@ test('update: venda superpowers, cria agents, define default_agent e mantém pon
   assert.ok(existsSync(join(dir, '.opencode', 'skills', 'brainstorming', 'SKILL.md')));
   assert.ok(existsSync(join(dir, '.opencode', 'agents', 'flash.md')));
   assert.ok(existsSync(join(dir, '.opencode', 'agents', 'verify.md')));
+  assert.ok(existsSync(join(dir, '.opencode', 'agents', 'orchestrator.md')));
+  assert.ok(existsSync(join(dir, '.opencode', 'agents', 'implementer.md')));
   const obj = JSON.parse(readFileSync(join(dir, 'opencode.json'), 'utf8'));
   assert.deepEqual(obj.plugin, [PONYTAIL_PLUGIN]);
   assert.equal(obj.default_agent, 'flash');
@@ -180,6 +182,8 @@ test('update --no-profile: não cria agents do perfil nem default_agent', () => 
   const r = spawnSync(process.execPath, [BIN, 'update', '--no-profile', '--no-ponytail', '--no-codegraph', '--no-agent-browser'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0);
   assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'flash.md')));
+  assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'orchestrator.md')));
+  assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'implementer.md')));
   assert.ok(existsSync(join(dir, '.opencode', 'agents', 'superpowers.md')));
   assert.ok(existsSync(join(dir, '.opencode', 'skills', 'brainstorming', 'SKILL.md')));
   assert.ok(!existsSync(join(dir, 'opencode.json')));
