@@ -10,12 +10,16 @@ The CLI always acts on the working directory (`process.cwd()`), never on the sou
 
 ## Step 0: get the code
 
-If you are already reading this from a local clone of bento, use that directory. Otherwise, clone it:
+The repo is public: no clone, no auth. If you are already reading this from a local clone of bento, use that directory. Otherwise, download the source tarball:
 
 ```bash
 BENTO_SRC="${TMPDIR:-/tmp}/bento-src"
-git clone --depth 1 https://github.com/gustavo-oo/bento.git "$BENTO_SRC"
+rm -rf "$BENTO_SRC"
+mkdir -p "$BENTO_SRC"
+curl -fsSL https://github.com/gustavo-oo/bento/archive/refs/heads/main.tar.gz | tar -xz -C "$BENTO_SRC" --strip-components=1
 ```
+
+If `curl`/`tar` are unavailable, fall back to `git clone --depth 1 https://github.com/gustavo-oo/bento.git "$BENTO_SRC"`.
 
 Keep the path in `BENTO_SRC` and do not edit anything inside it.
 
@@ -55,7 +59,7 @@ If the human wants to skip something, use the matching flag:
 
 ## Step 3: install
 
-From the root of the consumer project (not from inside the clone):
+From the root of the consumer project (not from inside `$BENTO_SRC`):
 
 ```bash
 node "$BENTO_SRC/bin/bento.mjs" install --language "<chosen language>"

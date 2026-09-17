@@ -24,7 +24,7 @@ It's a Node CLI with zero runtime dependencies, and it only acts where you tell 
 Paste this into your coding agent (opencode, Claude Code, Codex, Cursor…):
 
 ```text
-Install bento in this project: clone https://github.com/gustavo-oo/bento into a temp directory, read AGENT_INSTALL.md, and follow its instructions to the letter.
+Install bento in this project: read https://raw.githubusercontent.com/gustavo-oo/bento/main/AGENT_INSTALL.md (public repo, no clone needed) and follow its instructions to the letter.
 ```
 
 The agent checks the prerequisites, asks you which language it should use for generated artifacts (PR bodies, commits, docs, specs; default English), shows exactly what it will create (and what it will install outside your project), runs the install, and verifies the result.
