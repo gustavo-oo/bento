@@ -359,19 +359,21 @@ Expected: apenas `.pr-limits.yaml` e `.bento.yaml` (novos) e `AGENTS.md` (modifi
 
 - [ ] **Step 3: Smoke do shim e do hook**
 
-Run: `node scripts/pr-split-verify.mjs check origin/main HEAD` na camada atual
-Expected: relatório do diff e `PR within limits.`
+Run (base = camada anterior): `node scripts/pr-split-verify.mjs check split/dogfood/03-scripts-dogfood split/dogfood/04-ativacao`
+Expected: `PR within limits.` — o agregado da pilha contra o trunk acusa OVERSIZED por design (12+ arquivos); a validação é por camada.
 
-Run (hook com dois refs da pilha):
+Run (hook com todos os refs da pilha):
 
 ```bash
-printf 'refs/heads/split/dogfood/03-scripts-dogfood %s refs/heads/split/dogfood/03-scripts-dogfood %s\nrefs/heads/split/dogfood/02-repo-shim-test %s refs/heads/split/dogfood/02-repo-shim-test %s\n' \
+printf 'refs/heads/split/dogfood/04-ativacao %s refs/heads/split/dogfood/04-ativacao %s\nrefs/heads/split/dogfood/03-scripts-dogfood %s refs/heads/split/dogfood/03-scripts-dogfood %s\nrefs/heads/split/dogfood/02-repo-shim-test %s refs/heads/split/dogfood/02-repo-shim-test %s\nrefs/heads/split/dogfood/01-no-shim %s refs/heads/split/dogfood/01-no-shim %s\n' \
+  "$(git rev-parse split/dogfood/04-ativacao)" "$(git rev-parse split/dogfood/04-ativacao)" \
   "$(git rev-parse split/dogfood/03-scripts-dogfood)" "$(git rev-parse split/dogfood/03-scripts-dogfood)" \
   "$(git rev-parse split/dogfood/02-repo-shim-test)" "$(git rev-parse split/dogfood/02-repo-shim-test)" \
+  "$(git rev-parse split/dogfood/01-no-shim)" "$(git rev-parse split/dogfood/01-no-shim)" \
   | .bento/hooks/pre-push
 ```
 
-Expected: `[03-scripts-dogfood] diff 02-repo-shim-test...` e `[02-repo-shim-test] diff main...` dentro dos limites; exit 0.
+Expected: `[04-ativacao] diff 03-scripts-dogfood...`, `[03-scripts-dogfood] diff 02-repo-shim-test...`, `[02-repo-shim-test] diff 01-no-shim...`, `[01-no-shim] diff main...`, todas dentro dos limites; exit 0.
 
 - [ ] **Step 4: Commit da ativação**
 
