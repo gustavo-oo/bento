@@ -1,20 +1,54 @@
 ---
 name: small-prs
-description: Previne, valida, corrige e revisa PRs grandes no fluxo opencode (superpowers). Use durante o planejamento (prevenção), antes de abrir um PR (validação via pr-split-verify), quando um diff exceder os limites de .pr-limits.yaml (correção com split em cadeia via gh-stack) e para revisão independente por camada antes do submit (subagentes limpos).
+description: Previne, valida, corrige e revisa PRs grandes no fluxo opencode (superpowers). Use ao planejar (roadmap de sessões + camadas do stack), ao executar planos (stack viva — gh stack add por task + check por camada; violação = parar), antes de abrir um PR (pr-split-verify), quando um diff avulso exceder os limites de .pr-limits.yaml (split em cadeia via gh-stack) e para revisão independente por camada (subagentes limpos).
 ---
 
 # small-prs — prevenção, validação, correção e revisão de PRs grandes
 
-## Modo 1 — Prevenção (planejamento)
+## Modo 1 — Prevenção (sessões, roadmap e plano)
 
-Ao planejar (superpowers:writing-plans), cada task do plano é um slice de PR:
+### Sessões (roadmap na spec)
 
-- 1 acceptance criterion por slice.
-- Testes viajam junto do código que validam.
-- Refactor separado de feature.
-- Migração junto do código que ela serve.
+Ao fazer brainstorming/spec, feche um roadmap de sessões antes de qualquer plano detalhado:
+
+| # | sessão | entregável demonstrável | camadas estimadas | linhas/arquivos est. | depende de |
+| - | ------ | ----------------------- | ----------------- | -------------------- | ---------- |
+
+- 1 entregável demonstrável por sessão; sem entregável nomeável, não é sessão.
+- Estimativa total da sessão > ~3× o limite do PR (default 400 → ~1200 linhas) → divida a sessão já no roadmap.
+- Sessões dependentes só começam depois que as anteriores entregaram (merge); declare a ordem.
+- Planejamento progressivo: o plano da sessão atual é detalhado em `docs/superpowers/plans/YYYY-MM-DD-<assunto>-s<N>.md`; sessões futuras ganham plano próprio quando começarem.
+- Spec/roadmap + plano da sessão são commitados no trunk antes do stack (trunk protegido → docs na 1ª camada).
+
+### Plano da sessão (stack)
+
+Cada task do plano é uma camada de um stack gh-stack; declare a tabela:
+
+| camada | branch | base | foco/arquivos previstos | aceite | título do PR | mensagem do commit |
+| ------ | ------ | ---- | ----------------------- | ------ | ------------ | ------------------ |
+
+- Branch no padrão `split/<slug>/<nn>-<nome>`; 1 acceptance criterion por camada.
+- Testes viajam junto do código que validam; refactor separado de feature; migração junto do código que ela serve.
+- Estime arquivos/linhas por camada: camada cuja estimativa já passa do limite é dividida **antes** de executar.
 - Limite default: <=400 linhas de diff e <=10 arquivos por PR (ver .pr-limits.yaml).
-- Declare no plano as dependências entre PRs e a ordem de entrega.
+- Declare dependências e ordem de entrega entre as camadas.
+
+## Modo 1.5 — Execução em stack viva
+
+Setup da sessão: confira o trunk (`git remote set-head origin <trunk>`; um origin/HEAD errado faz o stack mirar a branch errada) e rode `gh stack init <branch1>`.
+
+Por task, nesta ordem:
+
+1. `gh stack add <branchN>` (cria a camada sobre o topo e faz checkout; sem commit).
+2. Implemente/teste/commite na camada (mensagem final = título do PR; vários commits ok — nada de squash interativo).
+3. Rode `node scripts/pr-split-verify.mjs check <baseN> HEAD` (ou `bento check <baseN>`); base = camada anterior, trunk na 1ª.
+4. Checkpoint: suíte de testes **completa** (não só a da task) + self-review curto do diff da camada.
+5. **Violou → PARE**: mostre a tabela (camada, linhas, arquivos, limite) e aguarde decisão (subdividir a task, mudar escopo ou override de docs). Não inicie a próxima task.
+6. Ok → registre o orçamento (linhas/arquivos vs limite) no relatório da task e, no fluxo subagent-driven-development, no ledger `.superpowers/sdd/progress.md`.
+
+**Fix em camada inferior (política A):** a camada congela ao passar o checkpoint; novos commits nela só por correção. Fix na camada K: navegue até K (`gh stack bottom`/`down`), commite, **agrupe todos os fixes pendentes** e rode `gh stack rebase --upstack` UMA vez (rerere já ligado). Rebase com conflito difícil → `gh stack rebase --abort` e **pare e pergunte**. Pós-rebase: re-rode `check` nas camadas afetadas, a suíte no topo e verifique por conteúdo (`git show <topo>:<arquivo>` / `git merge-base --is-ancestor`), nunca por hash — rebase troca hashes.
+
+Fim da sessão: Modo 4 (review por camada) → `gh stack submit --auto --open` → `gh pr edit` por PR → merge via `finishing-a-development-branch` (gate do usuário).
 
 ## Modo 2 — Validação (antes de abrir PR)
 

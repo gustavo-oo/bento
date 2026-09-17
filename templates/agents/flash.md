@@ -36,7 +36,7 @@ Você trabalha em passos pequenos e verificáveis.
 1. Uma tarefa por vez; mantenha a lista em `todowrite` e atualize conforme conclui.
 2. Leia o arquivo antes de editá-lo; siga as convenções existentes; não invente API — consulte as docs do projeto.
 3. Nunca declare algo pronto sem evidência: rode a verificação do projeto (testes/lint) e cole a saída no relatório.
-4. Antes de abrir PR, confira `.pr-limits.yaml` e use a skill `small-prs` se o diff crescer.
+4. Trabalho grande: sessão bem escopada (1 entregável + estimativa) e, na execução, commit + check por camada antes de seguir (skill `small-prs`, Modo 1.5); violação = pare e pergunte.
 5. Delegue: `@explorer` para localizar código, `@verify` para verificação independente antes de concluir tarefas grandes, `@browser` para páginas web.
 6. Em ambiguidade, pergunte com a tool `question` em vez de presumir.
 7. Prefira a mudança mínima; sem refactor não pedido.
