@@ -166,6 +166,15 @@ test('update: preserva default_agent definido pelo usuário e avisa', () => {
   assert.equal(obj.default_agent, 'build');
 });
 
+test('update: flash do usuário (sem marcador) não vira default_agent', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  mkdirSync(join(dir, '.opencode', 'agents'), { recursive: true });
+  writeFileSync(join(dir, '.opencode', 'agents', 'flash.md'), '---\ndescription: meu flash\n---\n');
+  const r = spawnSync(process.execPath, [BIN, 'update', '--no-ponytail', '--no-codegraph', '--no-agent-browser'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.ok(!existsSync(join(dir, 'opencode.json')));
+});
+
 test('update --no-profile: não cria agents do perfil nem default_agent', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
   const r = spawnSync(process.execPath, [BIN, 'update', '--no-profile', '--no-ponytail', '--no-codegraph', '--no-agent-browser'], { cwd: dir, encoding: 'utf8' });
