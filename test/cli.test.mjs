@@ -38,7 +38,7 @@ test('check: diff acima do limite sai com 1 e reports OVERSIZED PR', () => {
   writeFileSync(join(dir, 'f.txt'), `${lines}\n`);
   git(['add', '-A'], dir);
   git(['commit', '-m', 'big'], dir);
-  writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 5\nmax_files: 10\n');
+  writeFileSync(join(dir, '.bento.yaml'), 'max_lines: 5\nmax_files: 10\n');
   const r = spawnSync(process.execPath, [BIN, 'check', 'main'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 1);
   assert.ok(r.stderr.includes('OVERSIZED PR'));
@@ -53,7 +53,7 @@ test('check: diff dentro dos limites sai com 0', () => {
   writeFileSync(join(dir, 'f.txt'), 'v1\nv2\n');
   git(['add', '-A'], dir);
   git(['commit', '-m', 'small'], dir);
-  writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 500\nmax_files: 10\n');
+  writeFileSync(join(dir, '.bento.yaml'), 'max_lines: 500\nmax_files: 10\n');
   const r = spawnSync(process.execPath, [BIN, 'check', 'main'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0);
 });
@@ -73,7 +73,7 @@ test('check: usa three-dot (merge-base) — main avançado não conta como dele�
   git(['add', '-A'], dir);
   git(['commit', '-m', 'big on main'], dir);
   git(['checkout', 'feat'], dir);
-  writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 400\nmax_files: 10\n');
+  writeFileSync(join(dir, '.bento.yaml'), 'max_lines: 400\nmax_files: 10\n');
   const r = spawnSync(process.execPath, [BIN, 'check', 'main'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0);
   assert.ok(r.stdout.includes('PR within limits.'));
@@ -84,6 +84,49 @@ test('update: instala sem exigir gh', () => {
   const r = spawnSync(process.execPath, [BIN, 'update'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0);
   assert.ok(existsSync(join(dir, '.opencode', 'skills', 'small-prs', 'SKILL.md')));
+});
+
+test('update --language: grava a linguagem dos artefatos em .bento.yaml', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  const r = spawnSync(process.execPath, [BIN, 'update', '--language', 'Portuguese (pt-BR)', '--no-ponytail', '--no-codegraph', '--no-agent-browser', '--no-profile', '--no-output-style'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.ok(r.stdout.includes('artifacts language'));
+  assert.ok(readFileSync(join(dir, '.bento.yaml'), 'utf8').includes('artifacts_language: Portuguese (pt-BR)'));
+});
+
+test('update --language=valor: aceita a forma com igual', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  const r = spawnSync(process.execPath, [BIN, 'update', '--language=Spanish (es)', '--no-ponytail', '--no-codegraph', '--no-agent-browser', '--no-profile', '--no-output-style'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.ok(readFileSync(join(dir, '.bento.yaml'), 'utf8').includes('artifacts_language: Spanish (es)'));
+});
+
+test('update --language sem valor: uso inválido e sai 2', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  const r = spawnSync(process.execPath, [BIN, 'update', '--language', '--no-ponytail'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 2);
+  assert.ok(r.stderr.includes('--language requires a value'));
+});
+
+test('update: preserva .bento.yaml existente sem perguntar', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  writeFileSync(join(dir, '.bento.yaml'), 'artifacts_language: French\n');
+  const r = spawnSync(process.execPath, [BIN, 'update', '--no-ponytail', '--no-codegraph', '--no-agent-browser', '--no-profile', '--no-output-style'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.ok(!r.stdout.includes('artifacts language'));
+  assert.equal(readFileSync(join(dir, '.bento.yaml'), 'utf8'), 'artifacts_language: French\n');
+});
+
+test('update: migra .pr-limits.yaml para .bento.yaml e reporta', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 250\nmax_files: 7\n');
+  const r = spawnSync(process.execPath, [BIN, 'update', '--no-ponytail', '--no-codegraph', '--no-agent-browser', '--no-profile', '--no-output-style'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.ok(r.stdout.includes('merged into .bento.yaml'));
+  assert.ok(!existsSync(join(dir, '.pr-limits.yaml')));
+  const config = readFileSync(join(dir, '.bento.yaml'), 'utf8');
+  assert.ok(config.includes('max_lines: 250'));
+  assert.ok(config.includes('max_files: 7'));
 });
 
 test('update funciona a partir da cópia instalada (.bento/bin/bento.mjs)', () => {

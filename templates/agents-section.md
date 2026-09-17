@@ -4,7 +4,7 @@
 - Live stack: each task becomes a layer via `gh stack add`; after the task run `node scripts/pr-split-verify.mjs check <base> HEAD` (or `bento check`) and stop if it goes over; a fix on a lower layer = commit on that layer + a grouped `gh stack rebase --upstack`.
 - Never open a PR without running `node scripts/pr-split-verify.mjs check` (or `bento check`).
 - Before the check, refresh both branches involved with the remote: `git fetch origin <base> <head>` (stale refs = phantom diff).
-- A diff over `.pr-limits.yaml` blocks the PR: offer the split first.
+- A diff over `.bento.yaml` blocks the PR: offer the split first.
 - Chained splits are delivered with gh-stack (`gh stack init/add/push/submit`).
 - Split equivalence is mandatory: `node scripts/pr-split-verify.mjs equivalence <base> <head> <layer1> ...`.
 - Before finishing the branch/opening the PR, run the `self-review` gate: 2 reviewers (regression + adversarial), repro for High/Medium, and a ledger in `.superpowers/self-review/`. Nothing "residual" without an explicit decision.

@@ -5,21 +5,26 @@ import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync, statSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { install, uninstall } from '../lib/install.mjs';
+import { loadLimits, loadArtifactsLanguage } from '../lib/config.mjs';
 
 function git(args, cwd) {
   return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 }
 
-test('install: copia skill, shim, .bento e preserva .pr-limits.yaml existente', () => {
+test('install: copia skill, shim, .bento e migra .pr-limits.yaml para .bento.yaml', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
   writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 123\n');
-  install(dir, {});
+  const result = install(dir, {});
   assert.ok(existsSync(join(dir, '.opencode', 'skills', 'small-prs', 'SKILL.md')));
   assert.ok(existsSync(join(dir, 'scripts', 'pr-split-verify.mjs')));
   assert.ok(existsSync(join(dir, '.bento', 'lib', 'validate.mjs')));
   assert.ok(existsSync(join(dir, '.bento', 'bin', 'bento.mjs')));
-  assert.ok(existsSync(join(dir, '.bento', 'templates', 'pr-limits.yaml')));
-  assert.equal(readFileSync(join(dir, '.pr-limits.yaml'), 'utf8'), 'max_lines: 123\n');
+  assert.ok(existsSync(join(dir, '.bento', 'templates', 'bento.yaml')));
+  assert.ok(!existsSync(join(dir, '.bento', 'templates', 'pr-limits.yaml')));
+  assert.ok(!existsSync(join(dir, '.pr-limits.yaml')));
+  assert.ok(readFileSync(join(dir, '.bento.yaml'), 'utf8').includes('max_lines: 123'));
+  assert.equal(result.bentoConfig.migrated, true);
+  assert.equal(loadLimits(dir).maxLines, 123);
   assert.ok(readFileSync(join(dir, 'AGENTS.md'), 'utf8').includes('## Bento'));
 });
 
@@ -39,10 +44,15 @@ test('install: copia a skill self-review', () => {
   assert.ok(existsSync(join(dir, '.opencode', 'agents', 'reviewer.md')));
 });
 
-test('install: cria .pr-limits.yaml quando ausente e é idempotente', () => {
+test('install: cria .bento.yaml com limites e idioma quando ausente e é idempotente', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
   install(dir, {});
-  assert.ok(existsSync(join(dir, '.pr-limits.yaml')));
+  assert.ok(existsSync(join(dir, '.bento.yaml')));
+  assert.ok(!existsSync(join(dir, '.pr-limits.yaml')));
+  const config = readFileSync(join(dir, '.bento.yaml'), 'utf8');
+  assert.ok(config.includes('artifacts_language: English'));
+  assert.ok(config.includes('max_lines: 400'));
+  assert.ok(config.includes('max_files: 10'));
   const first = readFileSync(join(dir, 'AGENTS.md'), 'utf8');
   install(dir, {});
   assert.equal(readFileSync(join(dir, 'AGENTS.md'), 'utf8'), first);
@@ -58,6 +68,59 @@ test('install: cria .bento.yaml quando ausente e preserva o existente', () => {
   writeFileSync(join(dir, '.bento.yaml'), 'artifacts_language: Portuguese (pt-BR)\n');
   install(dir, {});
   assert.equal(readFileSync(join(dir, '.bento.yaml'), 'utf8'), 'artifacts_language: Portuguese (pt-BR)\n');
+});
+
+test('install: usa a linguagem escolhida em artifactsLanguage', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-lang-'));
+  install(dir, { artifactsLanguage: 'Portuguese (pt-BR)' });
+  const created = readFileSync(join(dir, '.bento.yaml'), 'utf8');
+  assert.ok(created.includes('artifacts_language: Portuguese (pt-BR)'));
+  assert.ok(created.includes('# bento'));
+  assert.equal(loadArtifactsLanguage(dir), 'Portuguese (pt-BR)');
+});
+
+test('install: artifactsLanguage atualiza .bento.yaml existente sem perder o resto', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-lang-'));
+  writeFileSync(join(dir, '.bento.yaml'), '# meu comentário\nartifacts_language: English\nextra: 1\n');
+  install(dir, { artifactsLanguage: 'Spanish (es)' });
+  const updated = readFileSync(join(dir, '.bento.yaml'), 'utf8');
+  assert.ok(updated.includes('# meu comentário'));
+  assert.ok(updated.includes('artifacts_language: Spanish (es)'));
+  assert.ok(updated.includes('extra: 1'));
+  assert.equal(loadArtifactsLanguage(dir), 'Spanish (es)');
+});
+
+test('install: sem artifactsLanguage preserva a linguagem do .bento.yaml', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-lang-'));
+  writeFileSync(join(dir, '.bento.yaml'), 'artifacts_language: French\n');
+  install(dir, {});
+  assert.equal(loadArtifactsLanguage(dir), 'French');
+});
+
+test('install: migra limites e overrides do .pr-limits.yaml preservando o idioma', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-lang-'));
+  writeFileSync(join(dir, '.bento.yaml'), 'artifacts_language: Portuguese (pt-BR)\n');
+  writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 250\nmax_files: 7\noverrides:\n  - glob: "db/**"\n    max_lines: 80\n');
+  install(dir, {});
+  const config = readFileSync(join(dir, '.bento.yaml'), 'utf8');
+  assert.ok(config.includes('artifacts_language: Portuguese (pt-BR)'));
+  assert.ok(config.includes('max_lines: 250'));
+  assert.ok(config.includes('max_files: 7'));
+  assert.ok(config.includes('  - glob: "db/**"'));
+  assert.ok(config.includes('    max_lines: 80'));
+  assert.ok(!existsSync(join(dir, '.pr-limits.yaml')));
+  const limits = loadLimits(dir);
+  assert.equal(limits.maxLines, 250);
+  assert.equal(limits.maxFiles, 7);
+  assert.deepEqual(limits.overrides, [{ glob: 'db/**', maxLines: 80 }]);
+});
+
+test('install: remove o template legado pr-limits.yaml de .bento/templates', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
+  mkdirSync(join(dir, '.bento', 'templates'), { recursive: true });
+  writeFileSync(join(dir, '.bento', 'templates', 'pr-limits.yaml'), 'max_lines: 1\n');
+  install(dir, {});
+  assert.ok(!existsSync(join(dir, '.bento', 'templates', 'pr-limits.yaml')));
 });
 
 test('install: noAgents não cria AGENTS.md', () => {
@@ -105,7 +168,7 @@ test('shim instalado roda check num repo git', () => {
   writeFileSync(join(dir, 'f.txt'), 'v1\nv2\n');
   git(['add', '-A'], dir);
   git(['commit', '-m', 'small'], dir);
-  writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 500\nmax_files: 10\n');
+  writeFileSync(join(dir, '.bento.yaml'), 'max_lines: 500\nmax_files: 10\n');
   install(dir, {});
   const r = spawnSync(process.execPath, [join(dir, 'scripts', 'pr-split-verify.mjs'), 'check', 'main'], {
     cwd: dir,

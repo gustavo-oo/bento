@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parseLimitsYaml, loadLimits, matchesOverride } from '../lib/config.mjs';
+import { parseLimitsYaml, parseArtifactsLanguage, loadLimits, loadArtifactsLanguage, matchesOverride } from '../lib/config.mjs';
 
 test('defaults com yaml vazio', () => {
   const c = parseLimitsYaml('');
@@ -54,6 +54,32 @@ test('loadLimits usa defaults quando arquivo ausente', () => {
 
 test('loadLimits lê o arquivo do projeto', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-config-'));
-  writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 123\n');
+  writeFileSync(join(dir, '.bento.yaml'), 'artifacts_language: English\nmax_lines: 123\n');
   assert.equal(loadLimits(dir).maxLines, 123);
+});
+
+test('loadLimits cai no .pr-limits.yaml legado quando .bento.yaml não existe', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-config-'));
+  writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 321\n');
+  assert.equal(loadLimits(dir).maxLines, 321);
+});
+
+test('parseArtifactsLanguage lê o idioma do config unificado', () => {
+  const text = '# bento\nartifacts_language: Portuguese (pt-BR)\nmax_lines: 400\n';
+  assert.equal(parseArtifactsLanguage(text), 'Portuguese (pt-BR)');
+});
+
+test('parseArtifactsLanguage: null quando ausente', () => {
+  assert.equal(parseArtifactsLanguage('max_lines: 400\n'), null);
+});
+
+test('loadArtifactsLanguage lê o arquivo do projeto', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-config-'));
+  writeFileSync(join(dir, '.bento.yaml'), 'artifacts_language: Spanish (es)\n');
+  assert.equal(loadArtifactsLanguage(dir), 'Spanish (es)');
+});
+
+test('loadArtifactsLanguage: null quando arquivo ausente', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-config-'));
+  assert.equal(loadArtifactsLanguage(dir), null);
 });

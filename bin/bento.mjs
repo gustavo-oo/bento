@@ -2,6 +2,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { createInterface } from 'node:readline/promises';
 import { runCheck, runEquivalence } from '../lib/validate.mjs';
 import { install, uninstall } from '../lib/install.mjs';
 import { hasBentoAgent } from '../lib/agents.mjs';
@@ -23,7 +24,31 @@ function ensureGhStack() {
   }
 }
 
-function run() {
+function languageArg() {
+  const withEquals = args.find((a) => a.startsWith('--language='));
+  if (withEquals !== undefined) return withEquals.slice('--language='.length);
+  const i = args.indexOf('--language');
+  if (i === -1) return null;
+  const value = args[i + 1];
+  return value && !value.startsWith('--') ? value : '';
+}
+
+async function promptArtifactsLanguage() {
+  if (existsSync(join(process.cwd(), '.bento.yaml'))) return null;
+  if (!process.stdin.isTTY || !process.stdout.isTTY) return null;
+  if (languageArg() !== null) return null;
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    const answer = (await rl.question('Language for generated artifacts (PR bodies, commits, docs, specs, plans) [English]: ')).trim();
+    return answer || null;
+  } catch {
+    return null;
+  } finally {
+    rl.close();
+  }
+}
+
+async function run() {
   const noAgents = args.includes('--no-agents');
   const noSuperpowers = args.includes('--no-superpowers');
   const noProfile = args.includes('--no-profile');
@@ -32,6 +57,12 @@ function run() {
   const noCodegraph = args.includes('--no-codegraph');
   const noAgentBrowser = args.includes('--no-agent-browser');
   const noOutputStyle = args.includes('--no-output-style');
+  const language = languageArg();
+  if (language === '' && (cmd === 'install' || cmd === 'update')) {
+    console.error('usage: --language requires a value (e.g. --language "Portuguese (pt-BR)")');
+    process.exitCode = 2;
+    return;
+  }
   switch (cmd) {
     case 'install': {
       if (!ensureGhStack()) {
@@ -39,10 +70,17 @@ function run() {
         process.exitCode = 1;
         return;
       }
-      const result = install(process.cwd(), { noAgents, noAgentBrowser, noHooks, noSuperpowers, noProfile, noCodegraph, noOutputStyle });
+      const artifactsLanguage = language ?? await promptArtifactsLanguage();
+      const result = install(process.cwd(), { noAgents, noAgentBrowser, noHooks, noSuperpowers, noProfile, noCodegraph, noOutputStyle, artifactsLanguage });
       console.log('bento installed:');
       console.log(`  skill → ${result.skillDir}`);
       console.log(`  lib   → ${result.dotBento}`);
+      if (result.bentoConfig.migrated) {
+        console.log('  config → .pr-limits.yaml merged into .bento.yaml');
+      }
+      if (result.bentoConfig.changed) {
+        console.log(`  artifacts language → ${result.bentoConfig.language} (.bento.yaml)`);
+      }
       if (!noHooks) {
         const h = setupPrePushHook(process.cwd());
         if (h.status === 'installed') console.log('  pre-push → core.hooksPath (.bento/hooks)');
@@ -85,7 +123,13 @@ function run() {
       return;
     }
     case 'update': {
-      const result = install(process.cwd(), { noAgents, noAgentBrowser, noHooks, noSuperpowers, noProfile, noCodegraph, noOutputStyle });
+      const result = install(process.cwd(), { noAgents, noAgentBrowser, noHooks, noSuperpowers, noProfile, noCodegraph, noOutputStyle, artifactsLanguage: language });
+      if (result.bentoConfig.migrated) {
+        console.log('  config → .pr-limits.yaml merged into .bento.yaml');
+      }
+      if (result.bentoConfig.changed) {
+        console.log(`  artifacts language → ${result.bentoConfig.language} (.bento.yaml)`);
+      }
       if (!noHooks) {
         const h = setupPrePushHook(process.cwd());
         if (h.status === 'installed') console.log('  pre-push → core.hooksPath (.bento/hooks)');
@@ -174,11 +218,13 @@ function run() {
     default:
       console.error(`usage: bento install|update|uninstall|check|equivalence
   install          installs the skill, scripts, config, pre-push hook, gh-stack, vendored superpowers skills, agents, ponytail, codegraph, agent-browser, and the output style (instructions) into the project
-                   (--no-agents skips AGENTS.md; --no-superpowers skips vendored skills/agent superpowers (does not touch the plugin);
+                   (.bento.yaml holds the PR limits and the artifact language; a legacy .pr-limits.yaml is merged into it;
+                    --language "<value>" sets the artifact language in .bento.yaml; skips the interactive prompt; on a TTY, install asks for it when .bento.yaml is missing;
+                    --no-agents skips AGENTS.md; --no-superpowers skips vendored skills/agent superpowers (does not touch the plugin);
                     --no-profile skips bento profile agents and default_agent; --no-ponytail skips ponytail;
                     --no-hooks skips pre-push; --no-codegraph skips codegraph; --no-agent-browser skips agent-browser;
                     --no-output-style skips the i-have-adhd skill and the instructions entry (does not revoke a previous install; use uninstall to remove))
-  update           re-installs keeping .pr-limits.yaml (does not touch gh-stack; does not reinstall CLIs or re-index codegraph)
+  update           re-installs keeping .bento.yaml (does not touch gh-stack; does not reinstall CLIs or re-index codegraph; never prompts for the artifact language)
   uninstall        removes everything bento added (gh-stack, .bento, skills, agents, shim, config, pre-push, plugins, output style, mcp, .codegraph, CLIs, AGENTS.md section)
   check [base]     validates diff size (head = HEAD, base default = main)
   equivalence <base> <head> <layer1> [layer2 ...]
@@ -187,4 +233,4 @@ function run() {
   }
 }
 
-run();
+await run();

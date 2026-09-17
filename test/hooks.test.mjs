@@ -183,7 +183,7 @@ test('hook real: push acima do limite é bloqueado', () => {
   git(['add', '-A'], dir);
   git(['commit', '-m', 'base'], dir);
   git(['checkout', '-b', 'feat'], dir);
-  writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 2\nmax_files: 10\n');
+  writeFileSync(join(dir, '.bento.yaml'), 'max_lines: 2\nmax_files: 10\n');
   writeFileSync(join(dir, 'f.txt'), 'v1\nv2\nv3\nv4\n');
   git(['add', '-A'], dir);
   git(['commit', '-m', 'big'], dir);
@@ -202,12 +202,12 @@ test('hook real: branch não-checked-out é validada no push (refs do stdin)', (
   git(['add', '-A'], dir);
   git(['commit', '-m', 'base'], dir);
   git(['checkout', '-b', 'feat'], dir);
-  writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 2\nmax_files: 10\n');
+  writeFileSync(join(dir, '.bento.yaml'), 'max_lines: 2\nmax_files: 10\n');
   writeFileSync(join(dir, 'f.txt'), 'v1\nv2\nv3\nv4\n');
   git(['add', '-A'], dir);
   git(['commit', '-m', 'big'], dir);
   git(['checkout', 'main'], dir);
-  writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 2\nmax_files: 10\n');
+  writeFileSync(join(dir, '.bento.yaml'), 'max_lines: 2\nmax_files: 10\n');
   install(dir, {});
   setupPrePushHook(dir);
   const r = spawnSync('git', ['push', '-u', 'origin', 'feat'], { cwd: dir, encoding: 'utf8' });
@@ -223,7 +223,7 @@ test('hook real: push dentro dos limites passa', () => {
   git(['add', '-A'], dir);
   git(['commit', '-m', 'base'], dir);
   git(['checkout', '-b', 'feat'], dir);
-  writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 10\nmax_files: 10\n');
+  writeFileSync(join(dir, '.bento.yaml'), 'max_lines: 10\nmax_files: 10\n');
   writeFileSync(join(dir, 'f.txt'), 'v1\nv2\n');
   git(['add', '-A'], dir);
   git(['commit', '-m', 'small'], dir);
@@ -256,7 +256,7 @@ function makeStackRepo() {
   writeFileSync(join(dir, 'base.txt'), 'v1\n');
   git(['add', '-A'], dir);
   git(['commit', '-m', 'base'], dir);
-  writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 6\nmax_files: 10\n');
+  writeFileSync(join(dir, '.bento.yaml'), 'max_lines: 6\nmax_files: 10\n');
   git(['add', '-A'], dir);
   git(['commit', '-m', 'limits'], dir);
   git(['checkout', '-b', 'L1'], dir);
@@ -289,7 +289,7 @@ test('hook real: push do stack é abortado quando uma camada estoura', () => {
   writeFileSync(join(dir, 'base.txt'), 'v1\n');
   git(['add', '-A'], dir);
   git(['commit', '-m', 'base'], dir);
-  writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 6\nmax_files: 10\n');
+  writeFileSync(join(dir, '.bento.yaml'), 'max_lines: 6\nmax_files: 10\n');
   git(['add', '-A'], dir);
   git(['commit', '-m', 'limits'], dir);
   git(['checkout', '-b', 'L1'], dir);
