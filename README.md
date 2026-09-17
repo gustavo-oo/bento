@@ -51,7 +51,7 @@ On a terminal, `install` asks which language agents must use for generated artif
 | Slice | What it does | Skip with |
 | --- | --- | --- |
 | superpowers skills | 14 vendored skills (brainstorming, plans, TDD, debugging, worktrees, review…), v6.1.1, MIT | `--no-superpowers` |
-| Scoped agents | `flash` (default, via `default_agent`), `superpowers`, `orchestrator`, `implementer`, `explorer`, `verify`, `reviewer`, `browser` | `--no-profile` |
+| Scoped agents | `flash` (single primary, default, via `default_agent`), `explorer`, `verify`, `reviewer`, `browser` | `--no-profile` |
 | `self-review` skill | Internal review gate: 2 reviewers (regression + adversarial), mandatory repro for High/Medium findings, local ledger | n/a |
 | `codegraph` MCP | Structural codebase search + global CLI + `.codegraph/` index | `--no-codegraph` |
 | `agent-browser` MCP | Browser automation + global CLI + skill | `--no-agent-browser` |
@@ -72,16 +72,13 @@ On a terminal, `install` asks which language agents must use for generated artif
 
 | Agent | What for |
 | --- | --- |
-| `flash` | Primary and default: small steps, evidence-based verification, delegation |
-| `superpowers` | Primary for features: brainstorm → plan → subagent execution → review |
-| `orchestrator` | Primary: runs the session roadmap and dispatches subagents |
-| `implementer` | Level-2 worker subagent: implements, does not delegate |
+| `flash` | Single primary and default: small steps, evidence-based verification, full skills when needed, delegation |
 | `explorer` | Read-only subagent that explores the codebase with codegraph and returns a digest with `file:line` |
 | `verify` | Read-only subagent that verifies independently, reviews layer by layer, and pastes the output |
 | `reviewer` | Read-only adversarial subagent: hunts edge cases, hostile inputs, and cross-cutting risks |
 | `browser` | Browser automation subagent that returns evidence |
 
-Switch with Tab. The `.md` files in `.opencode/agents/` are yours: tweak model, temperature, and permissions freely; `update` won't overwrite them.
+One primary, four workers: `flash` implements and decides, dispatching the subagents above; it never dispatches `general`, so the chain stops at level 2. The `.md` files in `.opencode/agents/` are yours: tweak model, temperature, and permissions freely; `update` won't overwrite them. Updating from an older install, the CLI warns about the obsolete `superpowers`, `orchestrator`, and `implementer` agents so you can delete them.
 
 ## 📏 Guardrails: small PRs
 

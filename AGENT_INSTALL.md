@@ -50,7 +50,7 @@ If the human wants to skip something, use the matching flag:
 | --- | --- |
 | codegraph (global CLI, MCP, and `init`) | `--no-codegraph` |
 | agent-browser (global CLI, MCP, and skill) | `--no-agent-browser` |
-| vendored superpowers skills + the `superpowers` agent (does not touch the plugin) | `--no-superpowers` |
+| vendored superpowers skills (does not touch the plugin) | `--no-superpowers` |
 | bento agents + `default_agent` | `--no-profile` |
 | ponytail plugin | `--no-ponytail` |
 | pre-push hook | `--no-hooks` |
@@ -108,7 +108,7 @@ bento installed (version <VERSION>)
 - pre-push hook: active (core.hooksPath → .bento/hooks)
 - next steps:
   - restart opencode to load the plugin, MCPs, and agents;
-  - Tab switches between flash (default) and superpowers;
+  - `flash` is the default (single primary); it delegates to explorer/verify/reviewer/browser when that pays off;
   - `node .bento/bin/bento.mjs check` validates the diff size (default main..HEAD).
 ```
 
