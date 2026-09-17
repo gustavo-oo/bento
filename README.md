@@ -1,6 +1,6 @@
 # bento
 
-CLI do fluxo opencode pessoal: instala e mantém, num projeto consumidor, a skill `small-prs` (limites de tamanho de PR + split em camadas), o plugin ponytail, as skills vendadas do superpowers e agents escopados, os MCP servers codegraph e agent-browser, as skills agent-browser e taste-skill e um hook pre-push.
+CLI do fluxo opencode pessoal: instala e mantém, num projeto consumidor, a skill `small-prs` (limites de tamanho de PR + split em camadas), o plugin ponytail, as skills vendadas do superpowers, o gate de review interno `self-review` e agents escopados, os MCP servers codegraph e agent-browser, as skills agent-browser e taste-skill e um hook pre-push.
 
 ## Instalação (no projeto consumidor)
 
@@ -76,7 +76,7 @@ Exit codes: `0` ok, `1` violação/divergência, `2` uso inválido.
 2. **Validação** — antes de abrir PR, rode `check`; acima do limite o PR é bloqueado.
 3. **Correção** — com aprovação: split em camadas coerentes, equivalência verificada, entrega em cadeia via `gh stack push`/`gh stack submit` (alias `gs` disponível via `gh stack alias`, opcional).
 
-Os agents escopados organizam o uso: `flash` (padrão enxuto), `superpowers` (skills completas), `explorer`, `verify` e `browser`. Troque com Tab; edite os `.md` em `.opencode/agents/` para ajustar modelo/temperatura.
+Os agents escopados organizam o uso: `flash` (padrão enxuto), `superpowers` (skills completas), `explorer`, `verify`, `reviewer` e `browser`. Troque com Tab; edite os `.md` em `.opencode/agents/` para ajustar modelo/temperatura.
 
 ## Config `.pr-limits.yaml`
 

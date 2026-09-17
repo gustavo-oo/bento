@@ -1,6 +1,6 @@
 # AGENTS.md — bento
 
-CLI que instala/atualiza/remove, num projeto consumidor, o fluxo opencode pessoal: skill `small-prs` (limites de PR + split), plugin ponytail, 14 skills vendadas do superpowers com agents escopados (`flash`, `superpowers`, `explorer`, `verify`, `browser`), MCP servers (codegraph, agent-browser), skill agent-browser/taste-skill e hook pre-push.
+CLI que instala/atualiza/remove, num projeto consumidor, o fluxo opencode pessoal: skill `small-prs` (limites de PR + split), skill `self-review` (gate de review interno com 2 agentes), plugin ponytail, 14 skills vendadas do superpowers com agents escopados (`flash`, `superpowers`, `explorer`, `verify`, `reviewer`, `browser`), MCP servers (codegraph, agent-browser), skill agent-browser/taste-skill e hook pre-push.
 
 ## Commands
 
