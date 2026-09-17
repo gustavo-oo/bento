@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img alt="Node >= 18" src="https://img.shields.io/badge/node-%3E%3D18-2f3338?logo=nodedotjs&amp;logoColor=white&amp;style=flat-square">
+  <img alt="Node &gt;= 18" src="https://img.shields.io/badge/node-%3E%3D18-2f3338?logo=nodedotjs&amp;logoColor=white&amp;style=flat-square">
   <img alt="Zero runtime dependencies" src="https://img.shields.io/badge/runtime%20deps-0-2f3338?style=flat-square">
   <img alt="Tests run with node:test" src="https://img.shields.io/badge/tests-node%3Atest-2f3338?style=flat-square">
   <img alt="PR limit: 400 lines, 10 files" src="https://img.shields.io/badge/PR%20limit-400%20lines%20%C2%B7%2010%20files-2f3338?style=flat-square">
