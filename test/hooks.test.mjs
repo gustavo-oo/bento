@@ -109,6 +109,23 @@ test('setup: só hooks .sample → installed', () => {
   assert.equal(localHooksPath(dir), '.bento/hooks');
 });
 
+test('setup: hook manual no diretório comum é visto em linked worktree', (t) => {
+  const dir = makeRepo();
+  writeFileSync(join(dir, 'f.txt'), 'v1\n');
+  git(['add', '-A'], dir);
+  git(['commit', '-m', 'base'], dir);
+  mkdirSync(join(dir, '.git', 'hooks'), { recursive: true });
+  writeFileSync(join(dir, '.git', 'hooks', 'pre-commit'), '#!/bin/sh\n');
+  const wt = join(mkdtempSync(join(tmpdir(), 'bento-hooks-wt-')), 'wt');
+  git(['worktree', 'add', wt], dir);
+  const mock = t.mock.method(console, 'error', () => {});
+  const r = setupPrePushHook(wt);
+  assert.equal(r.status, 'skipped');
+  assert.equal(r.reason, 'manual-hooks');
+  assert.equal(localHooksPath(wt), null);
+  assert.equal(mock.mock.callCount(), 1);
+});
+
 test('setup: não-repo → skip no-git', (t) => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-hooks-'));
   const mock = t.mock.method(console, 'error', () => {});
@@ -170,6 +187,27 @@ test('hook real: push acima do limite é bloqueado', () => {
   writeFileSync(join(dir, 'f.txt'), 'v1\nv2\nv3\nv4\n');
   git(['add', '-A'], dir);
   git(['commit', '-m', 'big'], dir);
+  install(dir, {});
+  setupPrePushHook(dir);
+  const r = spawnSync('git', ['push', '-u', 'origin', 'feat'], { cwd: dir, encoding: 'utf8' });
+  assert.notEqual(r.status, 0);
+  assert.ok(r.stderr.includes('PR GRANDE'));
+});
+
+test('hook real: branch não-checked-out é validada no push (refs do stdin)', () => {
+  const dir = makeRepo();
+  const remote = makeRemote();
+  git(['remote', 'add', 'origin', remote], dir);
+  writeFileSync(join(dir, 'f.txt'), 'v1\n');
+  git(['add', '-A'], dir);
+  git(['commit', '-m', 'base'], dir);
+  git(['checkout', '-b', 'feat'], dir);
+  writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 2\nmax_files: 10\n');
+  writeFileSync(join(dir, 'f.txt'), 'v1\nv2\nv3\nv4\n');
+  git(['add', '-A'], dir);
+  git(['commit', '-m', 'big'], dir);
+  git(['checkout', 'main'], dir);
+  writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 2\nmax_files: 10\n');
   install(dir, {});
   setupPrePushHook(dir);
   const r = spawnSync('git', ['push', '-u', 'origin', 'feat'], { cwd: dir, encoding: 'utf8' });
