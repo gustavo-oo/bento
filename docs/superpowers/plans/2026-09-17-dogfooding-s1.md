@@ -4,7 +4,7 @@
 
 **Goal:** Fazer o repositório do bento consumir o próprio bento (hook stack-aware, limites, skills, agents, MCP) com sincronia por re-install (`npm run dogfood`), sem versionar artefatos derivados.
 
-**Architecture:** Nova flag `--no-shim` no `install`/`update` preserva o shim versionado do repo, que aponta para `../lib/validate.mjs` (vivo) e já suporta `check-push` (veio com o trunk). Os scripts `dogfood`/`dogfood:setup` aplicam `install`/`update` com `--no-shim`; `.bento/`, `.opencode/`, `opencode.json` e `.codegraph/` ficam ignorados no git; `.pr-limits.yaml`, `.bento.yaml` e a seção gerada do `AGENTS.md` são versionados.
+**Architecture:** Nova flag `--no-shim` no `install`/`update` preserva o shim versionado do repo, que aponta para `../lib/validate.mjs` (vivo) e já suporta `check-push` (veio com o trunk). Os scripts `dogfood`/`dogfood:setup` aplicam `install`/`update` com `--no-shim`; `.bento/`, `.opencode/`, `opencode.json` e `.codegraph/` ficam ignorados no git; `.bento.yaml` e a seção gerada do `AGENTS.md` são versionados.
 
 **Tech Stack:** Node >= 18 puro, ESM, zero deps runtime, `node:test`, git, gh-stack (gh CLI).
 
@@ -17,8 +17,8 @@
 - `--no-shim` pula `mkdirSync(scripts)` e a escrita de `scripts/pr-split-verify.mjs`; nada mais muda no install.
 - O shim versionado (`scripts/pr-split-verify.mjs`) já expõe `check`, `check-push` e `equivalence` — não alterar; só adicionar smoke test.
 - Mudou flag/comportamento de `install`/`update`/`uninstall`? Atualizar `README.md` **e** `AGENT_INSTALL.md` juntos (regra do repo).
-- Ignorados no git: `.bento/`, `.codegraph/`, `.opencode/`, `opencode.json`, `opencode.jsonc`. Versionados: `.pr-limits.yaml`, `.bento.yaml` e a seção `## Bento (small-prs)` gerada no `AGENTS.md`.
-- `.pr-limits.yaml` do repo = padrão do template (400/10); docs contam no total global.
+- Ignorados no git: `.bento/`, `.codegraph/`, `.opencode/`, `opencode.json`, `opencode.jsonc`. Versionados: `.bento.yaml` e a seção `## Bento (small-prs)` gerada no `AGENTS.md`.
+- `.bento.yaml` do repo = padrão do template (400/10 + `artifacts_language: English`); docs contam no total global.
 - Camadas de stack: branch `split/dogfood/<nn>-<nome>`; 1 task = 1 camada; `check` por camada antes de seguir; violação = parar e perguntar.
 
 ### Tabela do stack
@@ -28,7 +28,7 @@
 | 01 | `split/dogfood/01-no-shim` | `origin/main` | `lib/install.mjs`, `bin/bento.mjs`, `test/install.test.mjs`, `test/cli.test.mjs`, `AGENTS.md`, `README.md`, `AGENT_INSTALL.md` | `update --no-shim` preserva shim existente; sem a flag, escreve o do bento | feat: add --no-shim flag to install/update |
 | 02 | `split/dogfood/02-repo-shim-test` | camada 01 | `test/repo-shim.test.mjs` | smoke do shim do repo verde (usage com `check-push`; `check-push` sem refs) | test: cover the repo pr-split-verify shim |
 | 03 | `split/dogfood/03-scripts-dogfood` | camada 02 | `package.json`, `.gitignore`, `README.md`, `AGENTS.md` | `npm run dogfood:setup`/`dogfood` existem; derivados ignorados | feat: add dogfood scripts and ignore derived artifacts |
-| 04 | `split/dogfood/04-ativacao` | camada 03 | `.pr-limits.yaml`, `.bento.yaml`, `AGENTS.md` (seção gerada) | `dogfood:setup` roda; hook ativo; `git status` limpo de derivados | feat: activate bento dogfooding in this repo |
+| 04 | `split/dogfood/04-ativacao` | camada 03 | `.bento.yaml`, `AGENTS.md` (seção gerada) | `dogfood:setup` roda; hook ativo; `git status` limpo de derivados | feat: activate bento dogfooding in this repo |
 
 ## Ao iniciar
 
@@ -89,7 +89,7 @@ Troque a assinatura (linha ~40):
 export function install(projectRoot, { noAgents = false, noAgentBrowser = false, noHooks = false, noSuperpowers = false, noProfile = false, noCodegraph = false, noOutputStyle = false, noShim = false } = {}) {
 ```
 
-E envolva o bloco do shim (hoje duas linhas entre `.opencode/commands` e `.pr-limits.yaml`):
+E envolva o bloco do shim (hoje duas linhas entre `.opencode/commands` e `.bento.yaml`):
 
 ```js
   if (!noShim) {
@@ -302,7 +302,7 @@ npm run dogfood         # after changing lib/, templates/, skills/, or agents
 - The committed `scripts/pr-split-verify.mjs` shim points at `../lib/validate.mjs` (live); the npm scripts pass `--no-shim` so it is never overwritten.
 - In fresh worktrees, run `npm run dogfood` inside the worktree to create `.bento/hooks` there; otherwise that worktree's pushes skip the hook.
 - The hook checks every pushed branch against its stack base; keep local `main` in sync with `origin/main`.
-- `bento uninstall` in this repo removes tracked files (`.pr-limits.yaml`, `.bento.yaml`, and the `## Bento` section of `AGENTS.md`); recover with `git restore`.
+- `bento uninstall` in this repo removes tracked files (`.bento.yaml` and the `## Bento` section of `AGENTS.md`); the live `scripts/pr-split-verify.mjs` shim stays (it does not contain the `.bento/lib` marker). Recover removed files with `git restore`.
 ```
 
 - [ ] **Step 4: Documentar no AGENTS.md (inglês)**
@@ -337,7 +337,7 @@ git commit -m "feat: add dogfood scripts and ignore derived artifacts"
 ### Task 4: Ativação do dogfood
 
 **Files:**
-- Create: `.pr-limits.yaml` e `.bento.yaml` (gerados pelo install)
+- Create: `.bento.yaml` (gerado pelo install)
 - Modify: `AGENTS.md` (seção `## Bento (small-prs)` gerada)
 
 **Interfaces:**
@@ -347,7 +347,7 @@ git commit -m "feat: add dogfood scripts and ignore derived artifacts"
 - [ ] **Step 1: Rodar o dogfood**
 
 Run: `npm run dogfood:setup`
-Expected: instala CLIs globais (codegraph, agent-browser + Chrome), garante gh-stack, cria `.bento/`, `.opencode/`, `opencode.json`, `.codegraph/`, `.pr-limits.yaml`, `.bento.yaml`, ativa `core.hooksPath`. Requer rede e `gh`; pode demorar (Chrome/index).
+Expected: instala CLIs globais (codegraph, agent-browser + Chrome), garante gh-stack, cria `.bento/`, `.opencode/`, `opencode.json`, `.codegraph/`, `.bento.yaml`, ativa `core.hooksPath`. Requer rede e `gh`; pode demorar (Chrome/index).
 
 - [ ] **Step 2: Verificar a instalação**
 
@@ -355,7 +355,7 @@ Run: `git config core.hooksPath && test -f .bento/VERSION && echo ok`
 Expected: `.bento/hooks` e `ok`.
 
 Run: `git status --short`
-Expected: apenas `.pr-limits.yaml` e `.bento.yaml` (novos) e `AGENTS.md` (modificado); nenhum `.bento/`, `.opencode/`, `opencode.json` ou `.codegraph/` (ignorados).
+Expected: apenas `.bento.yaml` (novo) e `AGENTS.md` (modificado); nenhum `.bento/`, `.opencode/`, `opencode.json` ou `.codegraph/` (ignorados).
 
 - [ ] **Step 3: Smoke do shim e do hook**
 
@@ -378,7 +378,7 @@ Expected: `[04-ativacao] diff 03-scripts-dogfood...`, `[03-scripts-dogfood] diff
 - [ ] **Step 4: Commit da ativação**
 
 ```bash
-git add .pr-limits.yaml .bento.yaml AGENTS.md
+git add .bento.yaml AGENTS.md
 git commit -m "feat: activate bento dogfooding in this repo"
 ```
 
@@ -386,6 +386,6 @@ git commit -m "feat: activate bento dogfooding in this repo"
 
 ## Self-review do plano
 
-- **Cobertura da spec (com adendo):** `--no-shim` → Task 1; smoke do shim vivo → Task 2 (a implementação já veio com o trunk); scripts/ignores/docs → Task 3; ativação com `.pr-limits.yaml` + `.bento.yaml` + seção gerada → Task 4. Base `origin/main` e regra de inglês registradas em Global Constraints.
+- **Cobertura da spec (com adendo):** `--no-shim` → Task 1; smoke do shim vivo → Task 2 (a implementação já veio com o trunk); scripts/ignores/docs → Task 3; ativação com `.bento.yaml` + seção gerada → Task 4. Base `origin/main` e regra de inglês registradas em Global Constraints.
 - **Sem placeholders:** todos os steps têm código, comandos e saídas esperadas; o único teste sem RED é o smoke da Task 2 (caracterização explícita).
 - **Consistência de tipos:** `noShim` (install) e `--no-shim` (CLI); `refs = [{ branch, sha }]` montado no shim; nomes de branch/arquivos conferem com a tabela do stack e as tasks; mensagens do `validate` conferidas no trunk (`PR within limits.` / `PR(s) within limits.`).

@@ -95,3 +95,7 @@ Verificação manual (não vira teste, muta o repo):
 - Regra nova do repo: artefatos produzidos a partir de 2026-09-17 em **inglês** (mensagens de CLI, docs, nomes de testes novos e commits); esta spec e o plano ficam como históricos em PT-BR.
 - `.bento.yaml` (novo desde o trunk) também é versionado, como `.pr-limits.yaml`: é config copiada do template só se ausente e removida pelo `uninstall`.
 - A flag `--no-shim` convive com o perfil atual de flags (`--no-output-style` etc.); `install`/`update` atualizam `README.md` **e** `AGENT_INSTALL.md` juntos (regra do repo).
+
+## Adendo 2 (2026-09-17, PR #17)
+
+- O trunk unificou os configs em `.bento.yaml` (limites de PR + idioma); `.pr-limits.yaml` virou legado (merge + remoção pelo install). A ativação versiona apenas `.bento.yaml`; as menções a `.pr-limits.yaml` no corpo desta spec ficam como histórico.

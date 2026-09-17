@@ -170,4 +170,4 @@ npm run dogfood         # after changing lib/, templates/, skills/, or agents
 - In fresh worktrees, run `npm run dogfood` inside the worktree to create `.bento/hooks` there; otherwise that worktree's pushes skip the hook.
 - Push the whole stack (`gh stack push`): the hook resolves each branch's base only among the refs in the same push, so a lone upper branch is checked against `main` and will likely be blocked.
 - The hook checks every pushed branch against its stack base; keep local `main` in sync with `origin/main`.
-- `bento uninstall` in this repo removes tracked files (`.pr-limits.yaml`, `.bento.yaml`, and the `## Bento` section of `AGENTS.md`); the live `scripts/pr-split-verify.mjs` shim stays (it does not contain the `.bento/lib` marker). Recover removed files with `git restore`.
+- `bento uninstall` in this repo removes tracked files (`.bento.yaml` and the `## Bento` section of `AGENTS.md`); the live `scripts/pr-split-verify.mjs` shim stays (it does not contain the `.bento/lib` marker). Recover removed files with `git restore`.
