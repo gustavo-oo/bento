@@ -10,6 +10,8 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "dogfood:setup": "node bin/bento.mjs install --no-shim",
+    "dogfood": "node bin/bento.mjs update --no-shim"
   }
 }
