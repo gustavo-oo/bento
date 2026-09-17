@@ -248,3 +248,61 @@ test('hook real: sem main local → push não bloqueado', () => {
   const r = spawnSync('git', ['push', '-u', 'origin', 'feat'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0);
 });
+
+function makeStackRepo() {
+  const dir = makeRepo();
+  const remote = makeRemote();
+  git(['remote', 'add', 'origin', remote], dir);
+  writeFileSync(join(dir, 'base.txt'), 'v1\n');
+  git(['add', '-A'], dir);
+  git(['commit', '-m', 'base'], dir);
+  writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 6\nmax_files: 10\n');
+  git(['add', '-A'], dir);
+  git(['commit', '-m', 'limits'], dir);
+  git(['checkout', '-b', 'L1'], dir);
+  writeFileSync(join(dir, 'l1.txt'), 'a\nb\nc\n');
+  git(['add', '-A'], dir);
+  git(['commit', '-m', 'l1'], dir);
+  git(['checkout', '-b', 'L2'], dir);
+  writeFileSync(join(dir, 'l2.txt'), 'a\nb\nc\n');
+  git(['add', '-A'], dir);
+  git(['commit', '-m', 'l2'], dir);
+  git(['checkout', '-b', 'L3'], dir);
+  writeFileSync(join(dir, 'l3.txt'), 'a\nb\nc\n');
+  git(['add', '-A'], dir);
+  git(['commit', '-m', 'l3'], dir);
+  return { dir, remote };
+}
+
+test('hook real: push do stack inteiro passa quando cada camada está no limite', () => {
+  const { dir } = makeStackRepo();
+  install(dir, {});
+  setupPrePushHook(dir);
+  const r = spawnSync('git', ['push', 'origin', 'L1', 'L2', 'L3'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+});
+
+test('hook real: push do stack é abortado quando uma camada estoura', () => {
+  const dir = makeRepo();
+  const remote = makeRemote();
+  git(['remote', 'add', 'origin', remote], dir);
+  writeFileSync(join(dir, 'base.txt'), 'v1\n');
+  git(['add', '-A'], dir);
+  git(['commit', '-m', 'base'], dir);
+  writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 6\nmax_files: 10\n');
+  git(['add', '-A'], dir);
+  git(['commit', '-m', 'limits'], dir);
+  git(['checkout', '-b', 'L1'], dir);
+  writeFileSync(join(dir, 'l1.txt'), 'a\nb\nc\n');
+  git(['add', '-A'], dir);
+  git(['commit', '-m', 'l1'], dir);
+  git(['checkout', '-b', 'L2'], dir);
+  writeFileSync(join(dir, 'l2.txt'), 'a\nb\nc\nd\ne\nf\ng\nh\n');
+  git(['add', '-A'], dir);
+  git(['commit', '-m', 'l2 big'], dir);
+  install(dir, {});
+  setupPrePushHook(dir);
+  const r = spawnSync('git', ['push', 'origin', 'L1', 'L2'], { cwd: dir, encoding: 'utf8' });
+  assert.notEqual(r.status, 0);
+  assert.ok(r.stderr.includes('PR GRANDE (L2)'));
+});
