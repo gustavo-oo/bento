@@ -62,6 +62,18 @@ test('install: seção do AGENTS.md cita o gate de self-review', () => {
   assert.ok(agents.includes('@reviewer'));
 });
 
+test('install: avisa quando flash e seção existentes não citam o self-review', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-install-stale-'));
+  mkdirSync(join(dir, '.opencode', 'agents'), { recursive: true });
+  writeFileSync(join(dir, '.opencode', 'agents', 'flash.md'), '---\n# bento: agent v1\ndescription: antigo\n---\nvelho\n');
+  writeFileSync(join(dir, 'AGENTS.md'), '## Bento (small-prs)\n\n- regra antiga\n');
+  const mock = t.mock.method(console, 'error', () => {});
+  install(dir, {});
+  const calls = mock.mock.calls.map((c) => c.arguments[0]);
+  assert.ok(calls.some((m) => m.includes('flash.md não cita o gate')), calls.join('\n'));
+  assert.ok(calls.some((m) => m.includes('seção ## Bento existente não cita o self-review')), calls.join('\n'));
+});
+
 test('install: shim importa de ../.bento/lib/validate.mjs', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
   install(dir, {});

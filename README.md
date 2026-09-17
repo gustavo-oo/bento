@@ -13,6 +13,8 @@ node bin/bento.mjs update         # re-instala mantendo .pr-limits.yaml local
 
 `install` exige `gh` (instala a extensão gh-stack) e sai com 1 sem ele. `update` não toca em gh-stack, não instala CLIs globais e não re-indexa o codegraph. Depois de instalado, `node .bento/bin/bento.mjs update` também funciona.
 
+> `install`/`update` não alteram agents nem a seção `## Bento` já existentes: se o seu install é anterior ao gate `self-review`, remova `.opencode/agents/flash.md` e o trecho antigo do `AGENTS.md` e rode `update` de novo (o CLI avisa quando falta).
+
 Instala:
 - `.opencode/skills/small-prs/SKILL.md` — skill opencode (prevenção/validação/correção)
 - `.opencode/skills/self-review/SKILL.md` — gate de review interno: 2 revisores (regressão + adversarial), repro para High/Medium e ledger local
