@@ -56,3 +56,23 @@ CI: `.github/workflows/ci.yml` runs `npm test` on Node 24 for PRs and pushes to 
 - Changed a flag or behavior of `install`/`update`/`uninstall`? Update `README.md` and `AGENT_INSTALL.md` together.
 - Plans/specs in `docs/superpowers/plans/` and `docs/superpowers/specs/` named `YYYY-MM-DD-<subject>.md`; session plans use `YYYY-MM-DD-<subject>-s<N>.md`.
 - `uninstall` only removes what it recognizes as its own (shim containing `.bento/lib/validate.mjs`; `## Bento (small-prs)` section); user files with the same names are preserved.
+
+## Bento (small-prs)
+
+- Sessions: the spec closes the roadmap (1 demonstrable deliverable + estimate; cut at ~3x the PR limit); each session has its own plan `docs/superpowers/plans/YYYY-MM-DD-<subject>-s<N>.md`, committed to trunk before the stack.
+- Live stack: each task becomes a layer via `gh stack add`; after the task run `node scripts/pr-split-verify.mjs check <base> HEAD` (or `bento check`) and stop if it goes over; a fix on a lower layer = commit on that layer + a grouped `gh stack rebase --upstack`.
+- Never open a PR without running `node scripts/pr-split-verify.mjs check` (or `bento check`).
+- Before the check, refresh both branches involved with the remote: `git fetch origin <base> <head>` (stale refs = phantom diff).
+- A diff over `.bento.yaml` blocks the PR: offer the split first.
+- Chained splits are delivered with gh-stack (`gh stack init/add/push/submit`).
+- Split equivalence is mandatory: `node scripts/pr-split-verify.mjs equivalence <base> <head> <layer1> ...`.
+- Before finishing the branch/opening the PR, run the `self-review` gate: 2 reviewers (regression + adversarial), repro for High/Medium, and a ledger in `.superpowers/self-review/`. Nothing "residual" without an explicit decision.
+- The pre-push hook is stack-aware: it validates each branch against its stack base (nearest ancestor in the same push).
+- Artifacts (PR bodies, commit messages, docs, specs, plans) use the language set in `.bento.yaml` (`artifacts_language`); the default is English.
+
+### Agents (bento)
+
+- Switch with Tab: `flash` (lean, default), `superpowers` (full skills workflow), and `orchestrator` (runs the session roadmap and dispatches subagents).
+- Delegate with `@explorer` (codegraph, read-only), `@verify` (independent verification/review), `@reviewer` (adversarial review), and `@browser` (web automation); `implementer` is the implementation worker (level 2, no subagents).
+- `.opencode/agents/*.md` are yours: edit `model`, `temperature`, and permissions freely; `bento update` does not overwrite them.
+
