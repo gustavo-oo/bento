@@ -1,7 +1,7 @@
 {
   "name": "bento",
   "version": "0.1.0",
-  "description": "Fluxo pessoal de opencode: skills, commands, scripts e configs — começando com small-prs (prevenção, validação e correção de PRs grandes)",
+  "description": "Personal opencode workflow: skills, commands, scripts, and configs, starting with small-prs (prevention, validation, and correction of oversized PRs)",
   "type": "module",
   "bin": {
     "bento": "bin/bento.mjs"

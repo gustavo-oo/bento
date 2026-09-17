@@ -489,7 +489,7 @@ test('default_agent: set com valor presente — skip, avisa e não altera', (t) 
   const r = setDefaultAgentIfAbsent(dir);
   assert.deepEqual(r, { skipped: true, value: 'build' });
   assert.equal(mock.mock.callCount(), 1);
-  assert.ok(mock.mock.calls[0].arguments[0].includes('já definido'));
+  assert.ok(mock.mock.calls[0].arguments[0].includes('already set'));
   assert.equal(readFileSync(join(dir, 'opencode.json'), 'utf8'), before);
 });
 

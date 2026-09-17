@@ -11,6 +11,6 @@ test('falha de CLI → false + aviso no stderr (sem rede)', (t) => {
   assert.equal(initCodegraph('/tmp', { codegraphBin: 'binario-fake-inexistente' }), false);
   assert.equal(mock.mock.callCount(), 5);
   for (const call of mock.mock.calls) {
-    assert.ok(call.arguments[0].startsWith('aviso:'));
+    assert.ok(call.arguments[0].startsWith('warning:'));
   }
 });

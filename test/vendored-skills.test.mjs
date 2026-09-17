@@ -62,7 +62,7 @@ test('installVendoredSkills: preserva skill existente com conteúdo diferente (a
   assert.deepEqual(r.installed, ['b']);
   assert.deepEqual(r.skipped, ['a']);
   assert.equal(mock.mock.callCount(), 1);
-  assert.ok(mock.mock.calls[0].arguments[0].includes('conteúdo diferente'));
+  assert.ok(mock.mock.calls[0].arguments[0].includes('different content'));
   assert.equal(readFileSync(join(project, '.opencode', 'skills', 'a', 'SKILL.md'), 'utf8'), '# meu\n');
 });
 

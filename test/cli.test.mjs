@@ -25,10 +25,10 @@ function makeRepo() {
 test('sem argumento mostra uso e sai com 2', () => {
   const r = spawnSync(process.execPath, [BIN], { encoding: 'utf8' });
   assert.equal(r.status, 2);
-  assert.ok(r.stderr.includes('uso:'));
+  assert.ok(r.stderr.includes('usage:'));
 });
 
-test('check: diff acima do limite sai com 1 e reporta PR GRANDE', () => {
+test('check: diff acima do limite sai com 1 e reports OVERSIZED PR', () => {
   const dir = makeRepo();
   writeFileSync(join(dir, 'f.txt'), 'v1\n');
   git(['add', '-A'], dir);
@@ -41,7 +41,7 @@ test('check: diff acima do limite sai com 1 e reporta PR GRANDE', () => {
   writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 5\nmax_files: 10\n');
   const r = spawnSync(process.execPath, [BIN, 'check', 'main'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 1);
-  assert.ok(r.stderr.includes('PR GRANDE'));
+  assert.ok(r.stderr.includes('OVERSIZED PR'));
 });
 
 test('check: diff dentro dos limites sai com 0', () => {
@@ -76,7 +76,7 @@ test('check: usa three-dot (merge-base) — main avançado não conta como dele�
   writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 400\nmax_files: 10\n');
   const r = spawnSync(process.execPath, [BIN, 'check', 'main'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0);
-  assert.ok(r.stdout.includes('PR dentro dos limites.'));
+  assert.ok(r.stdout.includes('PR within limits.'));
 });
 
 test('update: instala sem exigir gh', () => {
@@ -132,7 +132,7 @@ test('update: remove o plugin superpowers de instalações antigas', () => {
   writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ plugin: [SUPERPOWERS_PLUGIN] }, null, 2));
   const r = spawnSync(process.execPath, [BIN, 'update', '--no-ponytail', '--no-codegraph', '--no-agent-browser'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0);
-  assert.ok(r.stdout.includes('plugin removido'));
+  assert.ok(r.stdout.includes('plugin removed'));
   const obj = JSON.parse(readFileSync(join(dir, 'opencode.json'), 'utf8'));
   assert.ok(!(obj.plugin ?? []).includes(SUPERPOWERS_PLUGIN));
 });
@@ -165,7 +165,7 @@ test('update: preserva default_agent definido pelo usuário e avisa', () => {
   writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ default_agent: 'build' }, null, 2));
   const r = spawnSync(process.execPath, [BIN, 'update', '--no-ponytail', '--no-codegraph', '--no-agent-browser'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0);
-  assert.ok(r.stderr.includes('default_agent já definido'));
+  assert.ok(r.stderr.includes('default_agent already set'));
   const obj = JSON.parse(readFileSync(join(dir, 'opencode.json'), 'utf8'));
   assert.equal(obj.default_agent, 'build');
 });
@@ -319,7 +319,7 @@ test('update --no-hooks: avisa que o pre-push continua ativo de install anterior
   assert.equal(first.status, 0);
   const r = spawnSync(process.execPath, [BIN, 'update', '--no-hooks'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0);
-  assert.ok(r.stderr.includes('pre-push ainda ativo'));
+  assert.ok(r.stderr.includes('pre-push still active'));
   const hp = execFileSync('git', ['config', '--local', '--get', 'core.hooksPath'], { cwd: dir, encoding: 'utf8' }).trim();
   assert.equal(hp, '.bento/hooks');
 });

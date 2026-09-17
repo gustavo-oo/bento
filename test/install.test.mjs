@@ -71,8 +71,8 @@ test('install: avisa quando flash e seção existentes não citam o self-review'
   const mock = t.mock.method(console, 'error', () => {});
   install(dir, {});
   const calls = mock.mock.calls.map((c) => c.arguments[0]);
-  assert.ok(calls.some((m) => m.includes('flash.md não cita o gate')), calls.join('\n'));
-  assert.ok(calls.some((m) => m.includes('seção ## Bento existente não cita o self-review')), calls.join('\n'));
+  assert.ok(calls.some((m) => m.includes('flash.md does not mention the self-review gate')), calls.join('\n'));
+  assert.ok(calls.some((m) => m.includes('existing ## Bento section does not mention self-review')), calls.join('\n'));
 });
 
 test('install: shim importa de ../.bento/lib/validate.mjs', () => {
@@ -205,7 +205,7 @@ test('install: preserva skill vendada divergente e avisa', (t) => {
   const mock = t.mock.method(console, 'error', () => {});
   install(dir, {});
   assert.equal(readFileSync(join(dir, '.opencode', 'skills', 'writing-plans', 'SKILL.md'), 'utf8'), '# meu\n');
-  assert.ok(mock.mock.calls.some((c) => c.arguments[0].includes('conteúdo diferente')));
+  assert.ok(mock.mock.calls.some((c) => c.arguments[0].includes('different content')));
 });
 
 test('install: noSuperpowers não venda skills nem cria o agent superpowers', () => {
@@ -267,7 +267,7 @@ test('uninstall: remove skills vendadas idênticas e preserva divergentes', (t) 
   assert.ok(removed.includes('.opencode/skills/brainstorming'));
   assert.ok(existsSync(join(dir, '.opencode', 'skills', 'writing-plans')));
   assert.ok(!removed.includes('.opencode/skills/writing-plans'));
-  assert.ok(mock.mock.calls.some((c) => c.arguments[0].includes('modificada')));
+  assert.ok(mock.mock.calls.some((c) => c.arguments[0].includes('was modified')));
 });
 
 test('uninstall: remove agents com marcador e preserva agent do usuário', () => {

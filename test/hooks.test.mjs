@@ -191,7 +191,7 @@ test('hook real: push acima do limite é bloqueado', () => {
   setupPrePushHook(dir);
   const r = spawnSync('git', ['push', '-u', 'origin', 'feat'], { cwd: dir, encoding: 'utf8' });
   assert.notEqual(r.status, 0);
-  assert.ok(r.stderr.includes('PR GRANDE'));
+  assert.ok(r.stderr.includes('OVERSIZED PR'));
 });
 
 test('hook real: branch não-checked-out é validada no push (refs do stdin)', () => {
@@ -212,7 +212,7 @@ test('hook real: branch não-checked-out é validada no push (refs do stdin)', (
   setupPrePushHook(dir);
   const r = spawnSync('git', ['push', '-u', 'origin', 'feat'], { cwd: dir, encoding: 'utf8' });
   assert.notEqual(r.status, 0);
-  assert.ok(r.stderr.includes('PR GRANDE'));
+  assert.ok(r.stderr.includes('OVERSIZED PR'));
 });
 
 test('hook real: push dentro dos limites passa', () => {
@@ -304,5 +304,5 @@ test('hook real: push do stack é abortado quando uma camada estoura', () => {
   setupPrePushHook(dir);
   const r = spawnSync('git', ['push', 'origin', 'L1', 'L2'], { cwd: dir, encoding: 'utf8' });
   assert.notEqual(r.status, 0);
-  assert.ok(r.stderr.includes('PR GRANDE (L2)'));
+  assert.ok(r.stderr.includes('OVERSIZED PR (L2)'));
 });

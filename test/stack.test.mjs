@@ -122,8 +122,8 @@ test('runCheckPush: refs no mesmo commit avaliam contra main e bloqueiam diff gr
   assert.ok(
     error.mock.calls.some(
       (c) =>
-        c.arguments[0].includes('PR GRANDE (feat)') ||
-        c.arguments[0].includes('PR GRANDE (feat-copy)'),
+        c.arguments[0].includes('OVERSIZED PR (feat)') ||
+        c.arguments[0].includes('OVERSIZED PR (feat-copy)'),
     ),
   );
 });
@@ -165,7 +165,7 @@ test('runCheckPush: camada acima do limite bloqueia e reporta a camada', (t) => 
     cwd: dir,
   });
   assert.equal(code, 1);
-  assert.ok(error.mock.calls.some((c) => c.arguments[0].includes('PR GRANDE (L2)')));
+  assert.ok(error.mock.calls.some((c) => c.arguments[0].includes('OVERSIZED PR (L2)')));
 });
 
 test('runCheckPush: branch única mantém o comportamento contra main', (t) => {

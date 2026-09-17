@@ -98,9 +98,9 @@ test('reviewer: read-only adversarial, temp 0, MCPs negados', () => {
 
 test('flash: aponta para o checkpoint por camada do Modo 1.5', () => {
   const raw = template('flash');
-  assert.ok(raw.includes('Modo 1.5'));
+  assert.ok(raw.includes('Mode 1.5'));
   assert.ok(raw.includes('check'));
-  assert.ok(raw.includes('camada'));
+  assert.ok(raw.includes('layer'));
 });
 
 test('browser: agent-browser allow em skill, bash e MCP', () => {
@@ -209,7 +209,7 @@ test('installAgents: não sobrescreve arquivo com marcador e avisa sem marcador'
   assert.ok(r2.skipped.includes('verify'));
   assert.ok(!r2.created.includes('verify'));
   assert.equal(mock.mock.callCount(), 1);
-  assert.ok(mock.mock.calls[0].arguments[0].includes('não é do bento'));
+  assert.ok(mock.mock.calls[0].arguments[0].includes('is not from bento'));
 });
 
 test('removeAgents: remove só arquivos com marcador e devolve caminhos', () => {
