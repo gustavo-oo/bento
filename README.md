@@ -59,12 +59,13 @@ node /tmp/bento-src/bin/bento.mjs update    # re-installs, keeping your .pr-limi
 | `small-prs` skill | Prevents, validates, and fixes oversized PRs; knows how to split them into layers | n/a |
 | pre-push hook | Stack-aware: checks every pushed branch against its stack base and aborts over the limit | `--no-hooks` |
 | `.pr-limits.yaml` | Your PR limits (created only if missing, never overwritten) | n/a |
+| `.bento.yaml` | Language for generated artifacts: PR bodies, commits, docs, specs (created only if missing) | n/a |
 | `scripts/pr-split-verify.mjs` shim | Shortcut for `check`, `check-push`, and `equivalence` at the project root | n/a |
 | `.bento/` | Pinned copy of the CLI (lib, bin, templates, skills) for local `update` | n/a |
 | `## Bento (small-prs)` section in `AGENTS.md` | The workflow rules your agent reads in every project | `--no-agents` |
 | `gh-stack` extension | Delivers layered PR stacks (`gh stack push/submit`) | install only |
 
-`update` is more conservative than `install`: it preserves your `.pr-limits.yaml`, leaves `gh-stack` alone, doesn't reinstall global CLIs, doesn't re-index codegraph, and never touches existing agents or your `## Bento` section.
+`update` is more conservative than `install`: it preserves your `.pr-limits.yaml` and `.bento.yaml`, leaves `gh-stack` alone, doesn't reinstall global CLIs, doesn't re-index codegraph, and never touches existing agents or your `## Bento` section.
 
 ## 🤖 Agents
 

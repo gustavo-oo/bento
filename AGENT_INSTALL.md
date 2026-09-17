@@ -35,7 +35,7 @@ gh auth status
 
 Summarize in a few lines:
 
-- **In the project**: creates/updates `.bento/` (lib, bin, skills, templates, `VERSION`), `.opencode/` (skills, agents, instructions), `scripts/pr-split-verify.mjs`, `.pr-limits.yaml` (created only if missing), the `## Bento (small-prs)` section in `AGENTS.md`, and keys in `opencode.json`/`opencode.jsonc` (ponytail plugin, MCPs, `default_agent`, and `instructions`).
+- **In the project**: creates/updates `.bento/` (lib, bin, skills, templates, `VERSION`), `.opencode/` (skills, agents, instructions), `scripts/pr-split-verify.mjs`, `.pr-limits.yaml` (created only if missing), `.bento.yaml` (artifact language, created only if missing), the `## Bento (small-prs)` section in `AGENTS.md`, and keys in `opencode.json`/`opencode.jsonc` (ponytail plugin, MCPs, `default_agent`, and `instructions`).
 - **Outside the project**: `npm install -g` for `@colbymchenry/codegraph` and `agent-browser`; the `gh-stack` extension; `git config core.hooksPath .bento/hooks` (local config per clone); `codegraph init` creates `.codegraph/`.
 
 If the human wants to skip something, use the matching flag:
@@ -76,6 +76,7 @@ test -f .opencode/agents/flash.md
 test -f .opencode/agents/reviewer.md
 test -f scripts/pr-split-verify.mjs
 test -f .pr-limits.yaml
+test -f .bento.yaml
 grep -q '^## Bento (small-prs)' AGENTS.md
 test -x .bento/hooks/pre-push
 test "$(git config core.hooksPath)" = ".bento/hooks"

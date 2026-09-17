@@ -49,6 +49,17 @@ test('install: cria .pr-limits.yaml quando ausente e é idempotente', () => {
   assert.equal(first.split('## Bento').length, 2);
 });
 
+test('install: cria .bento.yaml quando ausente e preserva o existente', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-lang-'));
+  install(dir, {});
+  const created = readFileSync(join(dir, '.bento.yaml'), 'utf8');
+  assert.ok(created.includes('artifacts_language'));
+  assert.ok(readFileSync(join(dir, 'AGENTS.md'), 'utf8').includes('.bento.yaml'));
+  writeFileSync(join(dir, '.bento.yaml'), 'artifacts_language: Portuguese (pt-BR)\n');
+  install(dir, {});
+  assert.equal(readFileSync(join(dir, '.bento.yaml'), 'utf8'), 'artifacts_language: Portuguese (pt-BR)\n');
+});
+
 test('install: noAgents não cria AGENTS.md', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
   install(dir, { noAgents: true });
@@ -113,6 +124,7 @@ test('uninstall: remove tudo do install e preserva AGENTS.md', () => {
   assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'small-prs')));
   assert.ok(!existsSync(join(dir, 'scripts', 'pr-split-verify.mjs')));
   assert.ok(!existsSync(join(dir, '.pr-limits.yaml')));
+  assert.ok(!existsSync(join(dir, '.bento.yaml')));
   const agents = readFileSync(join(dir, 'AGENTS.md'), 'utf8');
   assert.ok(!agents.includes('## Bento'));
   assert.ok(agents.includes('# Meu Projeto'));

@@ -1,0 +1,4 @@
+# bento: configuration for generated artifacts.
+# Language agents must use for PR bodies, commit messages, docs, specs, and plans.
+# Free text; examples: English, Portuguese (pt-BR), Spanish (es).
+artifacts_language: English

@@ -9,6 +9,7 @@
 - Split equivalence is mandatory: `node scripts/pr-split-verify.mjs equivalence <base> <head> <layer1> ...`.
 - Before finishing the branch/opening the PR, run the `self-review` gate: 2 reviewers (regression + adversarial), repro for High/Medium, and a ledger in `.superpowers/self-review/`. Nothing "residual" without an explicit decision.
 - The pre-push hook is stack-aware: it validates each branch against its stack base (nearest ancestor in the same push).
+- Artifacts (PR bodies, commit messages, docs, specs, plans) use the language set in `.bento.yaml` (`artifacts_language`); the default is English.
 
 ### Agents (bento)
 
