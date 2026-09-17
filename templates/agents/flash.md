@@ -24,6 +24,7 @@ permission:
     "*": deny
     explorer: allow
     verify: allow
+    reviewer: allow
     browser: allow
   "codegraph_*": deny
   "agent-browser_*": deny

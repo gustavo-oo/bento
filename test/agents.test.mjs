@@ -14,7 +14,7 @@ function agentPath(dir, name) {
   return join(dir, '.opencode', 'agents', `${name}.md`);
 }
 
-const TEMPLATES = ['flash', 'superpowers', 'explorer', 'verify', 'browser'];
+const TEMPLATES = ['flash', 'superpowers', 'explorer', 'verify', 'reviewer', 'browser'];
 
 function template(name) {
   return readFileSync(new URL(`../templates/agents/${name}.md`, import.meta.url), 'utf8');
@@ -41,6 +41,7 @@ test('flash: nega skills do superpowers/agent-browser e MCPs; task fechado nos 3
   assert.ok(raw.includes('explorer: allow'));
   assert.ok(raw.includes('verify: allow'));
   assert.ok(raw.includes('browser: allow'));
+  assert.ok(raw.includes('reviewer: allow'));
 });
 
 test('superpowers: bootstrap embutido, tool mapping e copyright/atribuição', () => {
@@ -80,6 +81,19 @@ test('browser: agent-browser allow em skill, bash e MCP', () => {
   assert.match(raw, /skill:\n\s+"\*": deny\n\s+agent-browser: allow/);
 });
 
+test('reviewer: read-only adversarial, temp 0, MCPs negados', () => {
+  const raw = template('reviewer');
+  assert.ok(raw.includes('mode: subagent'));
+  assert.ok(raw.includes('temperature: 0'));
+  assert.ok(raw.includes('edit: deny'));
+  assert.ok(raw.includes('task: deny'));
+  assert.match(raw, /skill:\n\s+"\*": deny/);
+  assert.ok(raw.includes('"node --test*": allow'));
+  assert.ok(raw.includes('"npm test*": allow'));
+  assert.ok(raw.includes('"codegraph_*": deny'));
+  assert.ok(raw.includes('"agent-browser_*": deny'));
+});
+
 test('AGENT_MARKER/isBentoAgent: só reconhece marcador no frontmatter', () => {
   const dir = tmp();
   mkdirSync(join(dir, '.opencode', 'agents'), { recursive: true });
@@ -114,10 +128,10 @@ test('removeAgents: preserva arquivo do usuário com marcador apenas no corpo', 
   assert.ok(existsSync(agentPath(dir, 'flash')));
 });
 
-test('installAgents: cria os 5 por padrão, só se ausentes', () => {
+test('installAgents: cria os 6 por padrão, só se ausentes', () => {
   const dir = tmp();
   const r = installAgents(dir);
-  assert.deepEqual(r.created.sort(), ['browser', 'explorer', 'flash', 'superpowers', 'verify']);
+  assert.deepEqual(r.created.sort(), ['browser', 'explorer', 'flash', 'reviewer', 'superpowers', 'verify']);
   assert.deepEqual(r.skipped, []);
   assert.ok(isBentoAgent(agentPath(dir, 'flash')));
   const second = installAgents(dir);
@@ -133,6 +147,7 @@ test('installAgents: flags pulam agents (profile/superpowers/codegraph/agentBrow
   const dir2 = tmp();
   const r2 = installAgents(dir2, { profile: false });
   assert.deepEqual(r2.created, ['superpowers']);
+  assert.ok(!r2.created.includes('reviewer'));
   const dir3 = tmp();
   const r3 = installAgents(dir3, { codegraph: false });
   assert.ok(!r3.created.includes('explorer'));
@@ -163,7 +178,7 @@ test('removeAgents: remove só arquivos com marcador e devolve caminhos', () => 
   installAgents(dir);
   writeFileSync(agentPath(dir, 'meu'), '---\ndescription: user\n---\n');
   const { removed } = removeAgents(dir);
-  assert.equal(removed.length, 5);
+  assert.equal(removed.length, 6);
   assert.ok(removed.includes('.opencode/agents/flash.md'));
   assert.ok(!existsSync(agentPath(dir, 'flash')));
   assert.ok(existsSync(agentPath(dir, 'meu')));
