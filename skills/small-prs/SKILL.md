@@ -45,7 +45,7 @@ Só execute após aprovação explícita do usuário:
 
 ## Modo 4 — Revisão independente por camada (gate antes do submit)
 
-Integra com superpowers: é a fase de review do `subagent-driven-development`/`requesting-code-review` aplicada à stack. Reutilize os contratos existentes (não duplique): `task-reviewer-prompt.md` (subagent-driven-development) para revisão por camada e `code-reviewer.md` (requesting-code-review) para o review final da stack. O Modo 3 para na aprovação do usuário, mas a sequência natural é: Modo 3 passos 7-8 (equivalence + checks) → **Modo 4** → submit.
+Integra com superpowers: é a fase de review do `subagent-driven-development`/`requesting-code-review` aplicada à stack. Reutilize os contratos existentes (não duplique): `task-reviewer-prompt.md` (subagent-driven-development) para revisão por camada; o review final da stack é a skill `self-review` (2 revisores + validação cruzada + repro). O Modo 3 para na aprovação do usuário, mas a sequência natural é: Modo 3 passos 7-8 (equivalence + checks) → **Modo 4** → submit.
 
 Para CADA camada da stack, ANTES do `gh stack submit`:
 
@@ -63,4 +63,4 @@ Para CADA camada da stack, ANTES do `gh stack submit`:
 6. Minor → registre no ledger (`.superpowers/sdd/progress.md`) para o review final da stack.
 7. **GATE: camada sem review aprovado NÃO entra no submit.**
 
-Ao final de todas as camadas, despache UM subagente de **whole-stack review** (contrato code-reviewer.md): lê a cadeia completa de diffs encadeados + o resultado da equivalence + os Minors acumulados no ledger → veredito final antes do merge. **Além de ler o diff, o whole-stack DEVE verificar a topologia**: para cada fix aprovado, confirme por conteúdo (não por hash — rebases trocam hashes) que está ANCESTRAL no topo da cadeia (`git merge-base --is-ancestor <fix> <topo>` ou `git show <topo>:<arquivo>`). Depois disso, siga para o `finishing-a-development-branch` (merge em cascata via `gh stack merge`).
+Ao final de todas as camadas, rode a skill `self-review` no topo da cadeia (unidade = stack) e, além do review, **verifique a topologia**: para cada fix aprovado, confirme por conteúdo (não por hash — rebases trocam hashes) que está ANCESTRAL no topo da cadeia (`git merge-base --is-ancestor <fix> <topo>` ou `git show <topo>:<arquivo>`). Depois disso, siga para o `finishing-a-development-branch` (merge em cascata via `gh stack merge`).

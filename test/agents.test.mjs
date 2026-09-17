@@ -44,6 +44,11 @@ test('flash: nega skills do superpowers/agent-browser e MCPs; task fechado nos 3
   assert.ok(raw.includes('reviewer: allow'));
 });
 
+test('flash: inclui o gate de self-review no checklist', () => {
+  const raw = template('flash');
+  assert.ok(raw.includes('self-review'));
+});
+
 test('superpowers: bootstrap embutido, tool mapping e copyright/atribuição', () => {
   const raw = template('superpowers');
   assert.ok(raw.includes('<EXTREMELY_IMPORTANT>'));

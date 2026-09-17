@@ -13,7 +13,7 @@ node bin/bento.mjs check            # valida tamanho do diff main..HEAD
 ## CLI (bin/bento.mjs)
 
 - `install` atua num projeto consumidor e exige `gh` (instala a extensão gh-stack) → exit 1 sem `gh`; `update` NÃO toca gh-stack.
-- `install`/`update` copiam `lib/`, `bin/`, `templates/` para `.bento/` (+ `.bento/VERSION`), vendam as 14 skills do superpowers, criam os agents escopados em `.opencode/agents/` e o `default_agent` (só se ausente e o `flash` em disco for do bento), removem o plugin superpowers de instalações antigas e criam as skills do bento (`.opencode/skills/small-prs`, `taste-skill` e, salvo flag, `agent-browser`), o shim `scripts/pr-split-verify.mjs`, `.pr-limits.yaml` (só se ausente) e a seção `## Bento (small-prs)` no AGENTS.md.
+- `install`/`update` copiam `lib/`, `bin/`, `templates/` para `.bento/` (+ `.bento/VERSION`), vendam as 14 skills do superpowers, criam os agents escopados em `.opencode/agents/` e o `default_agent` (só se ausente e o `flash` em disco for do bento), removem o plugin superpowers de instalações antigas e criam as skills do bento (`.opencode/skills/small-prs`, `self-review`, `taste-skill` e, salvo flag, `agent-browser`), o shim `scripts/pr-split-verify.mjs`, `.pr-limits.yaml` (só se ausente) e a seção `## Bento (small-prs)` no AGENTS.md.
 - Flags de install/update: `--no-agents`, `--no-superpowers` (pula skills vendadas + agent superpowers; não mexe no plugin nem avança o snapshot `.bento/skills`), `--no-profile` (pula agents de perfil + `default_agent`), `--no-ponytail`, `--no-hooks`, `--no-codegraph`, `--no-agent-browser`.
 - Plugins e MCP vão para `opencode.json`/`opencode.jsonc`; só `install` instala os CLIs globais e roda `codegraph init` — `update` não instala CLIs nem re-indexa o codegraph.
 - `--no-hooks` com hook de install anterior ativo emite aviso no stderr (o `core.hooksPath` permanece).
@@ -35,7 +35,8 @@ node bin/bento.mjs check            # valida tamanho do diff main..HEAD
 - `skills/<nome>/` (14) — venda do superpowers v6.1.1 (commit `d884ae04edebef577e82ff7c4e143debd0bbec99`, MIT). Atualização manual: re-copiar do commit novo, reaplicar os patches locais e atualizar este bullet. Patches locais: `brainstorming/scripts/stop-server.sh` (canonicaliza o diretório antes do `rm -rf`), `systematic-debugging/find-polluter.sh` (respeita `TEST_CMD`) e `writing-skills/render-graphs.cjs` (renomeado de `.js` para rodar em contexto ESM; a skill referencia o novo nome).
 - `skills/taste-skill/SKILL.md` — venda do upstream https://github.com/Leonxlnx/taste-skill (commit `ccbc15639c97057cbfcf32ecebc38ef716e4bb37`, 24/08/2026, MIT). Atualização manual: re-copiar do commit novo e atualizar este bullet.
 - `skills/agent-browser/SKILL.md` — stub que aponta para `agent-browser skills get core`; o conteúdo real vem do CLI instalado.
-- `templates/agents/` — fonte dos agents `flash`, `superpowers` (bootstrap adaptado, MIT), `explorer`, `verify`, `browser`.
+- `skills/self-review/SKILL.md` — gate de review interno (skill bento, não vendada): 2 revisores com mandatos complementares (`verify` regressão + `reviewer` adversarial), repro obrigatória para High/Medium, validação cruzada, ledger local em `.superpowers/self-review/`, teto de 3 rodadas de re-review.
+- `templates/agents/` — fonte dos agents `flash`, `superpowers` (bootstrap adaptado, MIT), `explorer`, `verify`, `reviewer` e `browser`.
 
 ## Regras
 

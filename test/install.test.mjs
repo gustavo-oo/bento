@@ -54,6 +54,14 @@ test('install: noAgents não cria AGENTS.md', () => {
   assert.ok(!existsSync(join(dir, 'AGENTS.md')));
 });
 
+test('install: seção do AGENTS.md cita o gate de self-review', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
+  install(dir, {});
+  const agents = readFileSync(join(dir, 'AGENTS.md'), 'utf8');
+  assert.ok(agents.includes('self-review'));
+  assert.ok(agents.includes('@reviewer'));
+});
+
 test('install: shim importa de ../.bento/lib/validate.mjs', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
   install(dir, {});

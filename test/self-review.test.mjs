@@ -27,3 +27,8 @@ test('self-review: proíbe postar no GitHub e editar skills vendadas', () => {
   assert.ok(raw.includes('GitHub'));
   assert.ok(raw.includes('vendadas'));
 });
+
+test('small-prs Modo 4 usa a skill self-review no whole-stack', () => {
+  const raw = skill('small-prs');
+  assert.ok(raw.includes('self-review'));
+});

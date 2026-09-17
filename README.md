@@ -15,6 +15,7 @@ node bin/bento.mjs update         # re-instala mantendo .pr-limits.yaml local
 
 Instala:
 - `.opencode/skills/small-prs/SKILL.md` — skill opencode (prevenção/validação/correção)
+- `.opencode/skills/self-review/SKILL.md` — gate de review interno: 2 revisores (regressão + adversarial), repro para High/Medium e ledger local
 - `.opencode/skills/taste-skill/SKILL.md` — skill opencode de design anti-slop (design-taste-frontend)
 - `.opencode/skills/agent-browser/SKILL.md` — stub da skill agent-browser (pule com `--no-agent-browser`)
 - `scripts/pr-split-verify.mjs` — shim para `check` e `equivalence`
@@ -22,7 +23,7 @@ Instala:
 - `.pr-limits.yaml` — config (criada só se ausente; nunca sobrescrita)
 - `.bento/hooks/pre-push` + `core.hooksPath` — hook que bloqueia push com diff acima dos limites (pule com `--no-hooks`; config local por clone; `git push --no-verify` burla — conveniência, não segurança)
 - `.opencode/skills/` — 14 skills do superpowers vendadas (v6.1.1, MIT; pule com `--no-superpowers`)
-- `.opencode/agents/` — agents `flash` (padrão), `superpowers`, `explorer`, `verify`, `browser` (pule com `--no-profile`; o agent `superpowers` segue `--no-superpowers`; `explorer`/`browser` seguem `--no-codegraph`/`--no-agent-browser`)
+- `.opencode/agents/` — agents `flash` (padrão), `superpowers`, `explorer`, `verify`, `reviewer`, `browser` (pule com `--no-profile`; o agent `superpowers` segue `--no-superpowers`; `explorer`/`browser` seguem `--no-codegraph`/`--no-agent-browser`)
 - `default_agent: flash` no `opencode.json`/`.jsonc` — só se ausente e o `flash` instalado for do bento (pule com `--no-profile`)
 - `ponytail` — plugin adicionado ao `opencode.json`/`.jsonc` (pule com `--no-ponytail`)
 - `codegraph` — CLI global `@colbymchenry/codegraph`, MCP server (`codegraph serve --mcp`) e `codegraph init` (pule com `--no-codegraph`)
@@ -43,6 +44,7 @@ Remove:
 - `.opencode/skills/small-prs/` — skill opencode
 - `.opencode/skills/taste-skill/` — skill opencode de design
 - `.opencode/skills/agent-browser/` — skill opencode
+- `.opencode/skills/self-review/` — skill do gate de review interno
 - `.opencode/skills/<skill vendada>/` — só se idêntica à cópia instalada (modificadas são preservadas)
 - `.opencode/agents/*.md` — só agents com o marcador do bento (os seus são preservados)
 - `default_agent` do `opencode.json`/`.jsonc` — só se for `flash` e o agent removido era do bento
