@@ -8,7 +8,7 @@ import { install, uninstall } from '../lib/install.mjs';
 import { hasBentoAgent } from '../lib/agents.mjs';
 import { addPonytailPlugin, removePonytailPlugin, removeSuperpowersPlugin, setDefaultAgentIfAbsent, removeDefaultAgentIf, addInstructionsEntry, removeInstructionsEntry, OUTPUT_STYLE_INSTRUCTIONS } from '../lib/opencode-config.mjs';
 import { addMcpServer, removeMcpServer, CODEGRAPH_MCP, AGENT_BROWSER_MCP } from '../lib/mcp-config.mjs';
-import { ensureCodegraph, ensureAgentBrowser, initCodegraph, removeCodegraph, removeAgentBrowser } from '../lib/tools.mjs';
+import { ensureCodegraph, ensureAgentBrowser, initCodegraph } from '../lib/tools.mjs';
 import { setupPrePushHook, removePrePushHook, bentoHooksActive } from '../lib/hooks.mjs';
 
 const [, , cmd, ...args] = process.argv;
@@ -171,12 +171,6 @@ async function run() {
       return;
     }
     case 'uninstall': {
-      try {
-        execFileSync('gh', ['extension', 'remove', 'github/gh-stack'], { stdio: 'ignore' });
-      } catch (err) {
-        const detail = err.stderr?.trim() || err.message;
-        console.error(`warning: gh-stack could not be removed (${detail})`);
-      }
       const { removed } = uninstall(process.cwd());
       if (removed.includes('.opencode/agents/flash.md')) {
         const da = removeDefaultAgentIf(process.cwd());
@@ -200,14 +194,13 @@ async function run() {
         rmSync(cgIndex, { recursive: true, force: true });
         all.push('.codegraph');
       }
-      removeCodegraph();
-      removeAgentBrowser();
       if (all.length === 0) {
         console.log('bento: nothing to remove.');
       } else {
         console.log('bento uninstalled:');
         for (const path of all) console.log(`  removed: ${path}`);
       }
+      console.log('  kept: global tools (gh-stack, codegraph, agent-browser) — remove manually if unused');
       return;
     }
     case 'check':
@@ -227,7 +220,8 @@ async function run() {
                     --no-codegraph skips codegraph; --no-agent-browser skips agent-browser;
                     --no-output-style skips the i-have-adhd skill and the instructions entry (does not revoke a previous install; use uninstall to remove))
   update           re-installs keeping .bento.yaml (does not touch gh-stack; does not reinstall CLIs or re-index codegraph; never prompts for the artifact language)
-  uninstall        removes everything bento added (gh-stack, .bento, skills, agents, shim, config, pre-push, plugins, output style, mcp, .codegraph, CLIs, AGENTS.md section)
+  uninstall        removes everything bento added to the project (.bento, skills, agents, shim, config, pre-push, plugins, output style, mcp, .codegraph, AGENTS.md section);
+                   global tools (gh-stack, codegraph, agent-browser) are shared and stay installed
   check [base]     validates diff size (head = HEAD, base default = main)
   equivalence <base> <head> <layer1> [layer2 ...]
 `);

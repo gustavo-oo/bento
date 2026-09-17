@@ -115,5 +115,5 @@ bento installed (version <VERSION>)
 ## After installation
 
 - **Update**: `node .bento/bin/bento.mjs update` preserves `.bento.yaml` and your edits to the agents (a legacy `.pr-limits.yaml` is merged into `.bento.yaml`); it does not touch `gh-stack`, reinstall global CLIs, or re-index codegraph.
-- **Uninstall**: `node .bento/bin/bento.mjs uninstall`.
+- **Uninstall**: `node .bento/bin/bento.mjs uninstall` removes only what it installed in the project; the shared global tools (`gh-stack`, `codegraph`, `agent-browser`) stay installed.
 - Do not edit `.bento/` by hand: it is replaced on the next `update`.

@@ -133,10 +133,10 @@ overrides:
 
 ```bash
 node .bento/bin/bento.mjs update      # update the CLI and the installed pieces
-node .bento/bin/bento.mjs uninstall   # remove everything bento added (idempotent)
+node .bento/bin/bento.mjs uninstall   # remove everything bento added to the project (idempotent)
 ```
 
-`uninstall` only removes what it recognizes as its own: vendored skills you modified are preserved, agents without the bento marker stay where they are, and `scripts/pr-split-verify.mjs` only goes away if it's the bento shim.
+`uninstall` only removes what it recognizes as its own: vendored skills you modified are preserved, agents without the bento marker stay where they are, and `scripts/pr-split-verify.mjs` only goes away if it's the bento shim. The global tools it installs (`gh-stack`, `codegraph`, `agent-browser`) are shared across projects and stay installed; remove them by hand if you no longer use them.
 
 ## 🙏 Credits
 
