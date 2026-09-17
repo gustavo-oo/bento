@@ -23,7 +23,7 @@ Instala:
 - `.bento/hooks/pre-push` + `core.hooksPath` — hook que bloqueia push com diff acima dos limites (pule com `--no-hooks`; config local por clone; `git push --no-verify` burla — conveniência, não segurança)
 - `.opencode/skills/` — 14 skills do superpowers vendadas (v6.1.1, MIT; pule com `--no-superpowers`)
 - `.opencode/agents/` — agents `flash` (padrão), `superpowers`, `explorer`, `verify`, `browser` (pule com `--no-profile`; o agent `superpowers` segue `--no-superpowers`; `explorer`/`browser` seguem `--no-codegraph`/`--no-agent-browser`)
-- `default_agent: flash` no `opencode.json`/`.jsonc` — só se ausente (pule com `--no-profile`)
+- `default_agent: flash` no `opencode.json`/`.jsonc` — só se ausente e o `flash` instalado for do bento (pule com `--no-profile`)
 - `ponytail` — plugin adicionado ao `opencode.json`/`.jsonc` (pule com `--no-ponytail`)
 - `codegraph` — CLI global `@colbymchenry/codegraph`, MCP server (`codegraph serve --mcp`) e `codegraph init` (pule com `--no-codegraph`)
 - `agent-browser` — CLI global + Chrome, MCP server (`agent-browser mcp`) e skill (pule com `--no-agent-browser`)
@@ -64,7 +64,7 @@ bento equivalence <base> <head> <camada1> [camada2 …]  # prova que as camadas 
 node scripts/pr-split-verify.mjs check                 # idem (via shim instalado)
 ```
 
-O pre-push roda `check` (base `main`) automaticamente a cada `git push`; acima do limite o push é abortado.
+O pre-push roda `check` (base `main`) automaticamente a cada `git push`, para cada branch empurrado (refs do stdin); acima do limite o push é abortado.
 
 Exit codes: `0` ok, `1` violação/divergência, `2` uso inválido.
 
