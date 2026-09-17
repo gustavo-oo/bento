@@ -30,7 +30,7 @@ test('templates: frontmatter tem marcador, descrição e mode', () => {
   }
 });
 
-test('flash: nega skills do superpowers/agent-browser e MCPs; task fechado nos 3 subagentes', () => {
+test('flash: nega skills do superpowers/agent-browser e MCPs; task fechado nos 4 subagentes', () => {
   const raw = template('flash');
   for (const s of ['brainstorming', 'writing-plans', 'using-superpowers', 'writing-skills', 'agent-browser']) {
     assert.ok(raw.includes(`${s}: deny`), `flash: deny ${s}`);

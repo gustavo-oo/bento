@@ -36,6 +36,7 @@ test('install: copia a skill self-review', () => {
   install(dir, {});
   const src = readFileSync(new URL('../skills/self-review/SKILL.md', import.meta.url), 'utf8');
   assert.equal(readFileSync(join(dir, '.opencode', 'skills', 'self-review', 'SKILL.md'), 'utf8'), src);
+  assert.ok(existsSync(join(dir, '.opencode', 'agents', 'reviewer.md')));
 });
 
 test('install: cria .pr-limits.yaml quando ausente e é idempotente', () => {
@@ -134,6 +135,7 @@ test('uninstall: remove a skill self-review', () => {
   install(dir, {});
   const { removed } = uninstall(dir);
   assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'self-review')));
+  assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'reviewer.md')));
   assert.ok(removed.includes('.opencode/skills/self-review'));
 });
 

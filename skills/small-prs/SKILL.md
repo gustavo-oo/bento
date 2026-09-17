@@ -60,7 +60,7 @@ Para CADA camada da stack, ANTES do `gh stack submit`:
    - a instrução de rodar os testes da camada E `bento check` da camada.
 4. O reviewer emite DOIS vereditos (contrato task-reviewer): **spec compliance** ✅/❌ e **quality** Approved/Rejected, com findings por severidade Critical/Important/Minor.
 5. Critical/Important → despache subagente fix LIMPO → re-review (mesmo ciclo do subagent-driven-development: fixer roda os testes de cobertura e reporta comando + saída). **Path ÚNICO de relatório** para fixer e reviewer (definido no dispatch — ex: `<dir-temp>/modo4/layerN-report.md`) para nunca se perderem.
-6. Minor → registre no ledger da unidade do self-review (`.superpowers/self-review/<slug-da-stack>/ledger.md`); o gate final triagem os Low com o dev.
+6. Minor → registre no ledger da unidade do self-review (`.superpowers/self-review/<slug-da-stack>/ledger.md`); o gate final faz a triagem dos Low (Minor) com o dev.
 7. **GATE: camada sem review aprovado NÃO entra no submit.**
 
 Ao final de todas as camadas, rode a skill `self-review` no topo da cadeia (unidade = stack) e, além do review, **verifique a topologia**: para cada fix aprovado, confirme por conteúdo (não por hash — rebases trocam hashes) que está ANCESTRAL no topo da cadeia (`git merge-base --is-ancestor <fix> <topo>` ou `git show <topo>:<arquivo>`). Depois disso, siga para o `finishing-a-development-branch` (merge em cascata via `gh stack merge`).

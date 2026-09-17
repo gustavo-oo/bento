@@ -16,7 +16,7 @@ Use antes de `finishing-a-development-branch`/submit, ou quando o dev pedir "rev
 ## 0. Unidade e preparação
 
 1. Defina a unidade: task, camada da stack ou branch (default sob demanda: branch atual). Registre `base` e `head` com `git rev-parse`.
-2. Cheque o tamanho: `node scripts/pr-split-verify.mjs check <base> <head>` (ou `bento check <base>`). Se violar `.pr-limits.yaml`, **pare**: a unidade precisa de split com a skill `small-prs` antes do review. Review de diff gigante é teatro.
+2. Cheque o tamanho: `node scripts/pr-split-verify.mjs check <base> <head>` (ou `bento check <base> <head>`). Se violar `.pr-limits.yaml`, **pare**: a unidade precisa de split com a skill `small-prs` antes do review. Review de diff gigante é teatro.
 3. Crie o diretório da unidade, fora do git:
 
 ```bash
@@ -51,6 +51,7 @@ Na mesma mensagem, um `task` para `verify` (R1) e um para `reviewer` (R2), cada 
 > Mandato: <R1: regressão/correção — o diff cumpre o contrato e nada quebra o existente> | <R2: adversarial — bordas, inputs hostis, ESM/CJS, plataforma, symlink/worktree, snapshot/cache, legado, interação entre arquivos>.
 > Limites do projeto: `.pr-limits.yaml`. Read-only: não altere working tree, index, HEAD ou branches; pode rodar no máximo um teste focado.
 > Para cada achado: `arquivo:linha`, severidade (High/Medium/Low), o que está errado, impacto e **repro** (trecho de teste focado que falha por comportamento) quando High/Medium. Sem repro, classifique Low.
+> Severidade conforme a seção Severidade desta skill (bandas + antirrebaixamento).
 > Formato final: veredito (aprovar | needs fixes), achados e confiança.
 
 Os revisores são read-only: a repro chega como trecho no relatório; transcreva verbatim para `$dir/repro-<id>.test.mjs`, confirme o RED e só então despache a validação cruzada.
@@ -78,6 +79,12 @@ base: <sha> · head: <sha> · contrato: <ref>
 
 Status: `open` → `fixed` / `waived` / `discarded`. Nada é apagado; rebaixamento ou descarte registra quem validou e por quê.
 
+## Severidade
+
+- **High/Critical**: bug real (corrupção, perda de dados, segurança, quebra funcional) ou regressão confirmada.
+- **Medium/Important**: comportamento incorreto/frágil em cenário plausível, erro de contrato ou risco cross-cutting.
+- **Low/Minor**: estilo, polimento, docs, otimização sem impacto comprovado.
+
 ## 4. Decisão
 
 - **High/Medium confirmado e local/inequívoco** (não muda contrato público, schema/migração, dependências, nem arquivos fora do diff) → **auto-fix**.
@@ -89,6 +96,7 @@ Status: `open` → `fixed` / `waived` / `discarded`. Nada é apagado; rebaixamen
 
 - Fix com TDD: mova a repro para o diretório de testes do projeto, veja falhar (RED), corrija o mínimo (GREEN) e rode a suíte completa.
 - Re-review focado do par: itens corrigidos + regressão, no mesmo formato da rodada 1.
+- A repro de um achado descartado é removida do diretório da unidade (o ledger mantém o registro).
 - Teto de **3 rodadas** de re-review; ao exceder, pare e apresente o resumo com evidências ao dev.
 
 ## 6. Gate
@@ -101,5 +109,6 @@ Status: `open` → `fixed` / `waived` / `discarded`. Nada é apagado; rebaixamen
 
 - Nunca poste no GitHub por conta própria; o ledger é local.
 - Nunca edite skills vendadas do superpowers para "consertar" um achado.
+- Se `verify`/`reviewer` não existirem como subagents (ex.: install com `--no-profile`), use subagentes genéricos com os mesmos mandatos e read-only no prompt.
 - Nunca `git add -A`: os scratch em `.superpowers/self-review/` ficam fora do commit.
 - Este gate roda quando acionado (fim de trabalho ou pedido do dev); não há hook automático.

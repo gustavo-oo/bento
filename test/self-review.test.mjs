@@ -13,6 +13,7 @@ test('self-review: documenta ledger, severidades, repro e gate', () => {
   assert.ok(raw.includes('High'));
   assert.ok(raw.includes('Medium'));
   assert.ok(raw.includes('Low'));
+  assert.match(raw, /^## Severidade$/m);
   assert.ok(raw.includes('repro'));
   assert.ok(raw.includes('small-prs'));
   assert.ok(raw.includes('verify'));
