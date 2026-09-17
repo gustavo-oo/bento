@@ -1,6 +1,6 @@
 # bento
 
-CLI do fluxo opencode pessoal: instala e mantém, num projeto consumidor, a skill `small-prs` (limites de tamanho de PR + split em camadas), o plugin ponytail, as skills vendadas do superpowers e agents escopados, os MCP servers codegraph e agent-browser, as skills agent-browser e taste-skill e um hook pre-push.
+CLI do fluxo opencode pessoal: instala e mantém, num projeto consumidor, a skill `small-prs` (limites de PR + stack viva por sessão), o plugin ponytail, as skills vendadas do superpowers e agents escopados, os MCP servers codegraph e agent-browser, as skills agent-browser e taste-skill e um hook pre-push stack-aware.
 
 ## Instalação (no projeto consumidor)
 
@@ -22,7 +22,7 @@ Instala:
 - `.pr-limits.yaml` — config (criada só se ausente; nunca sobrescrita)
 - `.bento/hooks/pre-push` + `core.hooksPath` — hook que bloqueia push com diff acima dos limites (pule com `--no-hooks`; config local por clone; `git push --no-verify` burla — conveniência, não segurança)
 - `.opencode/skills/` — 14 skills do superpowers vendadas (v6.1.1, MIT; pule com `--no-superpowers`)
-- `.opencode/agents/` — agents `flash` (padrão), `superpowers`, `explorer`, `verify`, `browser` (pule com `--no-profile`; o agent `superpowers` segue `--no-superpowers`; `explorer`/`browser` seguem `--no-codegraph`/`--no-agent-browser`)
+- `.opencode/agents/` — agents `flash` (padrão), `superpowers`, `orchestrator` (executa o roadmap de sessões e dispara subagents), `explorer`, `verify` (verificação/review), `browser` e `implementer` (nível 2, sem subagents) (pule os do perfil com `--no-profile`; `superpowers` segue `--no-superpowers`; `explorer`/`browser` seguem `--no-codegraph`/`--no-agent-browser`)
 - `default_agent: flash` no `opencode.json`/`.jsonc` — só se ausente e o `flash` instalado for do bento (pule com `--no-profile`)
 - `ponytail` — plugin adicionado ao `opencode.json`/`.jsonc` (pule com `--no-ponytail`)
 - `codegraph` — CLI global `@colbymchenry/codegraph`, MCP server (`codegraph serve --mcp`) e `codegraph init` (pule com `--no-codegraph`)
@@ -64,17 +64,19 @@ bento equivalence <base> <head> <camada1> [camada2 …]  # prova que as camadas 
 node scripts/pr-split-verify.mjs check                 # idem (via shim instalado)
 ```
 
-O pre-push roda `check` (base `main`) automaticamente a cada `git push`, para cada branch empurrado (refs do stdin); acima do limite o push é abortado.
+O pre-push roda `check-push` automaticamente a cada `git push`, para cada branch empurrado (refs do stdin), resolvendo a base de cada camada de stack por ancestralidade (sem stack, base `main`); acima do limite o push é abortado.
 
 Exit codes: `0` ok, `1` violação/divergência, `2` uso inválido.
 
 ## Fluxo small-prs
 
-1. **Prevenção** — ao planejar (superpowers:writing-plans), 1 task = 1 slice de PR (testes junto, refactor ≠ feature, ≤400 linhas/10 arquivos).
-2. **Validação** — antes de abrir PR, rode `check`; acima do limite o PR é bloqueado.
-3. **Correção** — com aprovação: split em camadas coerentes, equivalência verificada, entrega em cadeia via `gh stack push`/`gh stack submit` (alias `gs` disponível via `gh stack alias`, opcional).
+1. **Sessões** — a spec fecha um roadmap (1 entregável demonstrável + estimativa; corte em ~3× o limite do PR); cada sessão tem plano próprio `-s<N>`, commitado no trunk antes do stack.
+2. **Prevenção** — cada task do plano é uma camada de stack (`gh stack add`), com 1 acceptance criterion e estimativa por camada (testes junto, refactor ≠ feature, ≤400 linhas/10 arquivos).
+3. **Execução (stack viva)** — commit + `check` por camada antes de seguir (Modo 1.5); violação = parar e perguntar; fix em camada inferior = commit na camada + `gh stack rebase --upstack` agrupado.
+4. **Validação** — antes de abrir PR, rode `check`; acima do limite o PR é bloqueado.
+5. **Correção avulsa** — com aprovação: split em camadas coerentes, equivalência verificada, entrega em cadeia via `gh stack push`/`gh stack submit` (alias `gs` via `gh stack alias`, opcional).
 
-Os agents escopados organizam o uso: `flash` (padrão enxuto), `superpowers` (skills completas), `explorer`, `verify` e `browser`. Troque com Tab; edite os `.md` em `.opencode/agents/` para ajustar modelo/temperatura.
+Os agents escopados organizam o uso: `flash` (padrão enxuto), `superpowers` (skills completas), `orchestrator` (roadmap de sessões), `implementer`, `explorer`, `verify` e `browser`. Troque com Tab; edite os `.md` em `.opencode/agents/` para ajustar modelo/temperatura.
 
 ## Config `.pr-limits.yaml`
 
