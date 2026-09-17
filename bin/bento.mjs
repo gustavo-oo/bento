@@ -94,6 +94,9 @@ async function run() {
       if (result.agents.created.length > 0) {
         console.log(`  agents → ${result.agents.created.map((n) => `${n}.md`).join(', ')}`);
       }
+      if (result.agents.obsolete.length > 0) {
+        console.error(`warning: obsolete agents from an older install: ${result.agents.obsolete.map((n) => `${n}.md`).join(', ')}; delete them by hand.`);
+      }
       if (!noProfile && hasBentoAgent(process.cwd(), 'flash')) {
         const da = setDefaultAgentIfAbsent(process.cwd());
         if (da && da.changed) console.log(`  default_agent → flash (${da.path})`);
@@ -142,6 +145,9 @@ async function run() {
       }
       if (result.agents.created.length > 0) {
         console.log(`  agents → ${result.agents.created.map((n) => `${n}.md`).join(', ')}`);
+      }
+      if (result.agents.obsolete.length > 0) {
+        console.error(`warning: obsolete agents from an older install: ${result.agents.obsolete.map((n) => `${n}.md`).join(', ')}; delete them by hand.`);
       }
       if (!noProfile && hasBentoAgent(process.cwd(), 'flash')) {
         const da = setDefaultAgentIfAbsent(process.cwd());
@@ -214,7 +220,7 @@ async function run() {
   install          installs the skill, scripts, config, pre-push hook, gh-stack, vendored superpowers skills, agents, ponytail, codegraph, agent-browser, and the output style (instructions) into the project
                    (.bento.yaml holds the PR limits and the artifact language; a legacy .pr-limits.yaml is merged into it;
                     --language "<value>" sets the artifact language in .bento.yaml; skips the interactive prompt; on a TTY, install asks for it when .bento.yaml is missing;
-                    --no-agents skips AGENTS.md; --no-superpowers skips vendored skills/agent superpowers (does not touch the plugin);
+                    --no-agents skips AGENTS.md; --no-superpowers skips vendored skills (does not touch the plugin);
                     --no-profile skips bento profile agents and default_agent; --no-ponytail skips ponytail;
                     --no-hooks skips pre-push; --no-shim skips the scripts/pr-split-verify.mjs shim;
                     --no-codegraph skips codegraph; --no-agent-browser skips agent-browser;

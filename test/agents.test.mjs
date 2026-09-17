@@ -14,7 +14,8 @@ function agentPath(dir, name) {
   return join(dir, '.opencode', 'agents', `${name}.md`);
 }
 
-const TEMPLATES = ['flash', 'superpowers', 'explorer', 'verify', 'reviewer', 'browser', 'orchestrator', 'implementer'];
+const TEMPLATES = ['flash', 'explorer', 'verify', 'reviewer', 'browser'];
+const OBSOLETE = ['superpowers', 'orchestrator', 'implementer'];
 
 function template(name) {
   return readFileSync(new URL(`../templates/agents/${name}.md`, import.meta.url), 'utf8');
@@ -30,32 +31,25 @@ test('templates: frontmatter tem marcador, descrição e mode', () => {
   }
 });
 
-test('flash: nega skills do superpowers/agent-browser e MCPs; task fechado nos 4 subagentes', () => {
+test('flash: único primary, skills liberadas e task fechado nos 4 subagentes', () => {
   const raw = template('flash');
-  for (const s of ['brainstorming', 'writing-plans', 'using-superpowers', 'writing-skills', 'agent-browser']) {
-    assert.ok(raw.includes(`${s}: deny`), `flash: deny ${s}`);
-  }
+  assert.ok(raw.includes('mode: primary'));
   assert.ok(raw.includes('"*": allow'));
+  for (const s of ['brainstorming', 'writing-plans', 'using-superpowers', 'writing-skills']) {
+    assert.ok(!raw.includes(`${s}: deny`), `flash: não nega ${s}`);
+  }
   assert.ok(raw.includes('"codegraph_*": deny'));
   assert.ok(raw.includes('"agent-browser_*": deny'));
   assert.ok(raw.includes('explorer: allow'));
   assert.ok(raw.includes('verify: allow'));
   assert.ok(raw.includes('reviewer: allow'));
   assert.ok(raw.includes('browser: allow'));
+  assert.ok(!raw.includes('general: allow'));
 });
 
 test('flash: inclui o gate de self-review no checklist', () => {
   const raw = template('flash');
   assert.ok(raw.includes('self-review'));
-});
-
-test('superpowers: bootstrap embutido, tool mapping e copyright/atribuição', () => {
-  const raw = template('superpowers');
-  assert.ok(raw.includes('<EXTREMELY_IMPORTANT>'));
-  assert.ok(raw.includes('using-superpowers'));
-  assert.ok(raw.includes('subagent_type: "general"'));
-  assert.ok(raw.includes('d884ae04edebef577e82ff7c4e143debd0bbec99'));
-  assert.ok(raw.includes('mode: primary'));
 });
 
 test('explorer: read-only, codegraph allow, MCPs e skills negados', () => {
@@ -145,52 +139,43 @@ test('removeAgents: preserva arquivo do usuário com marcador apenas no corpo', 
   assert.ok(existsSync(agentPath(dir, 'flash')));
 });
 
-test('installAgents: cria os 8 por padrão, só se ausentes', () => {
+test('installAgents: cria os 5 por padrão, só se ausentes', () => {
   const dir = tmp();
   const r = installAgents(dir);
-  assert.deepEqual(r.created.sort(), ['browser', 'explorer', 'flash', 'implementer', 'orchestrator', 'reviewer', 'superpowers', 'verify']);
+  assert.deepEqual(r.created.sort(), ['browser', 'explorer', 'flash', 'reviewer', 'verify']);
   assert.deepEqual(r.skipped, []);
+  assert.deepEqual(r.obsolete, []);
   assert.ok(isBentoAgent(agentPath(dir, 'flash')));
   const second = installAgents(dir);
   assert.deepEqual(second.created, []);
 });
 
-test('orchestrator: primary, task restrito a nível 2 e sem general', () => {
-  const raw = template('orchestrator');
-  assert.ok(raw.includes('mode: primary'));
-  assert.ok(raw.includes('"*": deny'));
-  assert.ok(raw.includes('implementer: allow'));
-  assert.ok(raw.includes('verify: allow'));
-  assert.ok(raw.includes('explorer: allow'));
-  assert.ok(raw.includes('browser: allow'));
-  assert.ok(!raw.includes('general: allow'));
-  assert.ok(raw.includes('question'));
-});
-
-test('implementer: subagent terminal, edit/bash permitidos', () => {
-  const raw = template('implementer');
-  assert.ok(raw.includes('mode: subagent'));
-  assert.ok(raw.includes('task: deny'));
-  assert.ok(raw.includes('edit: allow'));
-  assert.ok(raw.includes('bash: allow'));
-});
-
-test('installAgents: flags pulam agents (profile/superpowers/codegraph/agentBrowser)', () => {
+test('installAgents: reporta agents obsoletos sem removê-los', () => {
   const dir = tmp();
-  const r = installAgents(dir, { profile: false, superpowers: false, codegraph: false, agentBrowser: false });
+  mkdirSync(join(dir, '.opencode', 'agents'), { recursive: true });
+  for (const name of OBSOLETE) {
+    writeFileSync(agentPath(dir, name), '---\n# bento: agent v1\ndescription: antigo\n---\n');
+  }
+  writeFileSync(agentPath(dir, 'meu'), '---\ndescription: user\n---\n');
+  const r = installAgents(dir);
+  assert.deepEqual(r.obsolete.sort(), OBSOLETE.slice().sort());
+  assert.ok(existsSync(agentPath(dir, 'superpowers')));
+});
+
+test('installAgents: flags pulam agents (profile/codegraph/agentBrowser)', () => {
+  const dir = tmp();
+  const r = installAgents(dir, { profile: false, codegraph: false, agentBrowser: false });
   assert.deepEqual(r.created, []);
   assert.ok(!existsSync(agentPath(dir, 'flash')));
-  assert.ok(!existsSync(agentPath(dir, 'orchestrator')));
-  assert.ok(!existsSync(agentPath(dir, 'implementer')));
-  assert.ok(!existsSync(agentPath(dir, 'superpowers')));
   const dir2 = tmp();
   const r2 = installAgents(dir2, { profile: false });
-  assert.deepEqual(r2.created, ['superpowers']);
-  assert.ok(!r2.created.includes('reviewer'));
+  assert.deepEqual(r2.created, []);
+  assert.ok(!existsSync(agentPath(dir2, 'flash')));
   const dir3 = tmp();
   const r3 = installAgents(dir3, { codegraph: false });
   assert.ok(!r3.created.includes('explorer'));
   assert.ok(r3.created.includes('browser'));
+  assert.ok(r3.created.includes('flash'));
 });
 
 test('installAgents: não sobrescreve arquivo com marcador e avisa sem marcador', (t) => {
@@ -216,9 +201,11 @@ test('removeAgents: remove só arquivos com marcador e devolve caminhos', () => 
   const dir = tmp();
   installAgents(dir);
   writeFileSync(agentPath(dir, 'meu'), '---\ndescription: user\n---\n');
+  writeFileSync(agentPath(dir, 'orchestrator'), '---\n# bento: agent v1\ndescription: antigo\n---\n');
   const { removed } = removeAgents(dir);
-  assert.equal(removed.length, 8);
+  assert.equal(removed.length, 6);
   assert.ok(removed.includes('.opencode/agents/flash.md'));
+  assert.ok(removed.includes('.opencode/agents/orchestrator.md'));
   assert.ok(!existsSync(agentPath(dir, 'flash')));
   assert.ok(existsSync(agentPath(dir, 'meu')));
 });

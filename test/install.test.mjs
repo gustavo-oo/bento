@@ -311,7 +311,7 @@ test('install: preserva skill vendada divergente e avisa', (t) => {
   assert.ok(mock.mock.calls.some((c) => c.arguments[0].includes('different content')));
 });
 
-test('install: noSuperpowers não venda skills nem cria o agent superpowers', () => {
+test('install: noSuperpowers não venda skills', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-vendored-install-'));
   install(dir, { noSuperpowers: true });
   assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'brainstorming')));
