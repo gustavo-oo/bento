@@ -159,6 +159,7 @@ test('install: shim importa de ../.bento/lib/validate.mjs', () => {
 test('install: noShim skips scripts/pr-split-verify.mjs', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
   install(dir, { noShim: true });
+  assert.ok(!existsSync(join(dir, 'scripts')));
   assert.ok(!existsSync(join(dir, 'scripts', 'pr-split-verify.mjs')));
   assert.ok(existsSync(join(dir, '.bento', 'lib', 'validate.mjs')));
 });
@@ -244,6 +245,17 @@ test('uninstall: não apaga shim do usuário', () => {
   const { removed } = uninstall(dir);
   assert.ok(existsSync(join(dir, 'scripts', 'pr-split-verify.mjs')));
   assert.equal(readFileSync(join(dir, 'scripts', 'pr-split-verify.mjs'), 'utf8'), userShim);
+  assert.ok(!removed.includes('scripts/pr-split-verify.mjs'));
+});
+
+test('uninstall: preserves a live source shim (../lib/validate.mjs)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-uninstall-live-shim-'));
+  mkdirSync(join(dir, 'scripts'), { recursive: true });
+  const liveShim = '#!/usr/bin/env node\nimport { runCheck } from "../lib/validate.mjs";\n';
+  writeFileSync(join(dir, 'scripts', 'pr-split-verify.mjs'), liveShim);
+  const { removed } = uninstall(dir);
+  assert.ok(existsSync(join(dir, 'scripts', 'pr-split-verify.mjs')));
+  assert.equal(readFileSync(join(dir, 'scripts', 'pr-split-verify.mjs'), 'utf8'), liveShim);
   assert.ok(!removed.includes('scripts/pr-split-verify.mjs'));
 });
 
