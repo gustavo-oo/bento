@@ -63,6 +63,7 @@ async function run() {
     process.exitCode = 2;
     return;
   }
+  const noShim = args.includes('--no-shim');
   switch (cmd) {
     case 'install': {
       if (!ensureGhStack()) {
@@ -71,7 +72,7 @@ async function run() {
         return;
       }
       const artifactsLanguage = language ?? await promptArtifactsLanguage();
-      const result = install(process.cwd(), { noAgents, noAgentBrowser, noHooks, noSuperpowers, noProfile, noCodegraph, noOutputStyle, artifactsLanguage });
+      const result = install(process.cwd(), { noAgents, noAgentBrowser, noHooks, noSuperpowers, noProfile, noCodegraph, noOutputStyle, noShim, artifactsLanguage });
       console.log('bento installed:');
       console.log(`  skill → ${result.skillDir}`);
       console.log(`  lib   → ${result.dotBento}`);
@@ -123,7 +124,7 @@ async function run() {
       return;
     }
     case 'update': {
-      const result = install(process.cwd(), { noAgents, noAgentBrowser, noHooks, noSuperpowers, noProfile, noCodegraph, noOutputStyle, artifactsLanguage: language });
+      const result = install(process.cwd(), { noAgents, noAgentBrowser, noHooks, noSuperpowers, noProfile, noCodegraph, noOutputStyle, noShim, artifactsLanguage: language });
       if (result.bentoConfig.migrated) {
         console.log('  config → .pr-limits.yaml merged into .bento.yaml');
       }
@@ -222,7 +223,8 @@ async function run() {
                     --language "<value>" sets the artifact language in .bento.yaml; skips the interactive prompt; on a TTY, install asks for it when .bento.yaml is missing;
                     --no-agents skips AGENTS.md; --no-superpowers skips vendored skills/agent superpowers (does not touch the plugin);
                     --no-profile skips bento profile agents and default_agent; --no-ponytail skips ponytail;
-                    --no-hooks skips pre-push; --no-codegraph skips codegraph; --no-agent-browser skips agent-browser;
+                    --no-hooks skips pre-push; --no-shim skips the scripts/pr-split-verify.mjs shim;
+                    --no-codegraph skips codegraph; --no-agent-browser skips agent-browser;
                     --no-output-style skips the i-have-adhd skill and the instructions entry (does not revoke a previous install; use uninstall to remove))
   update           re-installs keeping .bento.yaml (does not touch gh-stack; does not reinstall CLIs or re-index codegraph; never prompts for the artifact language)
   uninstall        removes everything bento added (gh-stack, .bento, skills, agents, shim, config, pre-push, plugins, output style, mcp, .codegraph, CLIs, AGENTS.md section)

@@ -156,6 +156,22 @@ test('install: shim importa de ../.bento/lib/validate.mjs', () => {
   assert.ok(shim.includes('../.bento/lib/validate.mjs'));
 });
 
+test('install: noShim skips scripts/pr-split-verify.mjs', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
+  install(dir, { noShim: true });
+  assert.ok(!existsSync(join(dir, 'scripts', 'pr-split-verify.mjs')));
+  assert.ok(existsSync(join(dir, '.bento', 'lib', 'validate.mjs')));
+});
+
+test('install: noShim preserves an existing shim', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
+  mkdirSync(join(dir, 'scripts'), { recursive: true });
+  const sentinel = '#!/usr/bin/env node\nimport { runCheck } from "../lib/validate.mjs";\n';
+  writeFileSync(join(dir, 'scripts', 'pr-split-verify.mjs'), sentinel);
+  install(dir, { noShim: true });
+  assert.equal(readFileSync(join(dir, 'scripts', 'pr-split-verify.mjs'), 'utf8'), sentinel);
+});
+
 test('shim instalado roda check num repo git', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-shim-'));
   git(['init', '-b', 'main'], dir);

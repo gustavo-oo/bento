@@ -54,6 +54,7 @@ If the human wants to skip something, use the matching flag:
 | bento agents + `default_agent` | `--no-profile` |
 | ponytail plugin | `--no-ponytail` |
 | pre-push hook | `--no-hooks` |
+| the `scripts/pr-split-verify.mjs` shim | `--no-shim` |
 | `## Bento (small-prs)` section in `AGENTS.md` | `--no-agents` |
 | output style (`i-have-adhd` + `instructions`) | `--no-output-style` |
 

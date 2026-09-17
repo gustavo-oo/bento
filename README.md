@@ -61,7 +61,7 @@ On a terminal, `install` asks which language agents must use for generated artif
 | `small-prs` skill | Prevents, validates, and fixes oversized PRs; knows how to split them into layers | n/a |
 | pre-push hook | Stack-aware: checks every pushed branch against its stack base and aborts over the limit | `--no-hooks` |
 | `.bento.yaml` | Single config: PR limits + language for generated artifacts: PR bodies, commits, docs, specs (`install` asks for the language; created only if missing) | n/a |
-| `scripts/pr-split-verify.mjs` shim | Shortcut for `check`, `check-push`, and `equivalence` at the project root | n/a |
+| `scripts/pr-split-verify.mjs` shim | Shortcut for `check`, `check-push`, and `equivalence` at the project root | `--no-shim` |
 | `.bento/` | Pinned copy of the CLI (lib, bin, templates, skills) for local `update` | n/a |
 | `## Bento (small-prs)` section in `AGENTS.md` | The workflow rules your agent reads in every project | `--no-agents` |
 | `gh-stack` extension | Delivers layered PR stacks (`gh stack push/submit`) | install only |
