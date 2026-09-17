@@ -262,3 +262,43 @@ test('install: shim tem check-push para o hook stack-aware', () => {
   assert.ok(shim.includes('check-push'));
   assert.ok(shim.includes('../.bento/lib/validate.mjs'));
 });
+
+test('install: copia a skill i-have-adhd e o instructions', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
+  install(dir, {});
+  const vendada = readFileSync(new URL('../skills/i-have-adhd/SKILL.md', import.meta.url), 'utf8');
+  const copiada = readFileSync(join(dir, '.opencode', 'skills', 'i-have-adhd', 'SKILL.md'), 'utf8');
+  assert.equal(copiada, vendada);
+  const src = readFileSync(new URL('../templates/instructions/i-have-adhd.md', import.meta.url), 'utf8');
+  const instructions = readFileSync(join(dir, '.opencode', 'instructions', 'i-have-adhd.md'), 'utf8');
+  assert.equal(instructions, src);
+});
+
+test('install: noOutputStyle pula a skill e o instructions', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
+  install(dir, { noOutputStyle: true });
+  assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'i-have-adhd')));
+  assert.ok(!existsSync(join(dir, '.opencode', 'instructions', 'i-have-adhd.md')));
+});
+
+test('install: update sobrescreve skill e instructions editados', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
+  install(dir, {});
+  writeFileSync(join(dir, '.opencode', 'skills', 'i-have-adhd', 'SKILL.md'), '# meu\n');
+  writeFileSync(join(dir, '.opencode', 'instructions', 'i-have-adhd.md'), '# meu\n');
+  install(dir, {});
+  const vendada = readFileSync(new URL('../skills/i-have-adhd/SKILL.md', import.meta.url), 'utf8');
+  assert.equal(readFileSync(join(dir, '.opencode', 'skills', 'i-have-adhd', 'SKILL.md'), 'utf8'), vendada);
+  const src = readFileSync(new URL('../templates/instructions/i-have-adhd.md', import.meta.url), 'utf8');
+  assert.equal(readFileSync(join(dir, '.opencode', 'instructions', 'i-have-adhd.md'), 'utf8'), src);
+});
+
+test('uninstall: remove a skill i-have-adhd e o instructions', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-uninstall-'));
+  install(dir, {});
+  const { removed } = uninstall(dir);
+  assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'i-have-adhd')));
+  assert.ok(!existsSync(join(dir, '.opencode', 'instructions', 'i-have-adhd.md')));
+  assert.ok(removed.includes('.opencode/skills/i-have-adhd'));
+  assert.ok(removed.includes('.opencode/instructions/i-have-adhd.md'));
+});
