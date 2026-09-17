@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cpSync, mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { VENDORED_SKILLS, sameTree, installVendoredSkills, removeVendoredSkills } from '../lib/vendored-skills.mjs';
@@ -114,6 +114,20 @@ test('installVendoredSkills: atualiza skill nossa desatualizada (destino idênti
   assert.deepEqual(r.installed, ['a']);
   assert.deepEqual(r.skipped, []);
   assert.equal(readFileSync(join(project, '.opencode', 'skills', 'a', 'SKILL.md'), 'utf8'), '# a v2\n');
+});
+
+test('installVendoredSkills: remove arquivo que saiu da origem ao atualizar', () => {
+  const src = makeSource();
+  const project = tmp();
+  const ref = join(project, '.bento', 'skills');
+  installVendoredSkills(project, src, ['a']);
+  mkdirSync(ref, { recursive: true });
+  cpSync(join(src, 'a'), join(ref, 'a'), { recursive: true });
+  rmSync(join(src, 'a', 'scripts', 'helper.js'));
+  const r = installVendoredSkills(project, src, ['a'], ref);
+  assert.deepEqual(r.installed, ['a']);
+  assert.ok(!existsSync(join(project, '.opencode', 'skills', 'a', 'scripts', 'helper.js')));
+  assert.equal(readFileSync(join(project, '.opencode', 'skills', 'a', 'SKILL.md'), 'utf8'), '# a\n');
 });
 
 test('installVendoredSkills: preserva modificada mesmo havendo referência', (t) => {

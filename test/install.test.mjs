@@ -179,6 +179,25 @@ test('install: noSuperpowers não venda skills nem cria o agent superpowers', ()
   assert.ok(existsSync(join(dir, '.opencode', 'agents', 'flash.md')));
 });
 
+test('install: noSuperpowers preserva o snapshot anterior de .bento/skills', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-vendored-snapshot-'));
+  install(dir, {});
+  writeFileSync(join(dir, '.bento', 'skills', 'brainstorming', 'SKILL.md'), '# snapshot antigo\n');
+  install(dir, { noSuperpowers: true });
+  assert.equal(readFileSync(join(dir, '.bento', 'skills', 'brainstorming', 'SKILL.md'), 'utf8'), '# snapshot antigo\n');
+  install(dir, {});
+  const src = readFileSync(new URL('../skills/brainstorming/SKILL.md', import.meta.url), 'utf8');
+  assert.equal(readFileSync(join(dir, '.bento', 'skills', 'brainstorming', 'SKILL.md'), 'utf8'), src);
+});
+
+test('install: refresh de .bento/skills substitui a árvore (remove órfão)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-vendored-refresh-'));
+  install(dir, {});
+  writeFileSync(join(dir, '.bento', 'skills', 'brainstorming', 'extra.md'), 'orfao\n');
+  install(dir, {});
+  assert.ok(!existsSync(join(dir, '.bento', 'skills', 'brainstorming', 'extra.md')));
+});
+
 test('install: noProfile não cria agents do perfil; noCodegraph/noAgentBrowser pulam explorer/browser', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-agents-install-'));
   install(dir, { noProfile: true });
