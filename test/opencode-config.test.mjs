@@ -577,6 +577,17 @@ test('default_agent: remove em jsonc sozinho vira {} escrito', () => {
   assert.equal(readFileSync(r.path, 'utf8'), '{}\n');
 });
 
+test('default_agent: remove em jsonc só com comentário preserva o comentário', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  // nota\n  "default_agent": "flash"\n}\n');
+  const r = removeDefaultAgentIf(dir);
+  assert.ok(r);
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes('// nota'));
+  assert.ok(!raw.includes('default_agent'));
+  assert.notEqual(raw, '{}\n');
+});
+
 test('default_agent: remove com json inválido — avisa e não altera', (t) => {
   const dir = tmp();
   writeFileSync(join(dir, 'opencode.json'), '{ "default_agent": }');
@@ -698,4 +709,23 @@ test('remove: jsonc — valor real string e comentário com "plugin" array não 
   assert.equal(removeSuperpowersPlugin(dir), null);
   assert.equal(mock.mock.callCount(), 1);
   assert.equal(readFileSync(join(dir, 'opencode.jsonc'), 'utf8'), before);
+});
+
+test('add: jsonc — ] dentro de string no array não corrompe a inserção', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  "plugin": ["a]b"] // c\n}\n');
+  const r = addSuperpowersPlugin(dir);
+  assert.ok(r);
+  assert.equal(
+    readFileSync(r.path, 'utf8'),
+    `{\n  "plugin": ["a]b"\n  ,\n    "${SUPERPOWERS_PLUGIN}"\n  ] // c\n}\n`,
+  );
+});
+
+test('remove: jsonc — ] dentro de string no array não corrompe a remoção', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), `{\n  // c\n  "plugin": ["${SUPERPOWERS_PLUGIN}", "x]y"]\n}\n`);
+  const r = removeSuperpowersPlugin(dir);
+  assert.ok(r);
+  assert.equal(readFileSync(r.path, 'utf8'), '{\n  // c\n  "plugin": ["x]y"\n  ]\n}\n');
 });
