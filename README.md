@@ -96,4 +96,6 @@ overrides:
 npm test    # node --test test/*.test.mjs
 ```
 
+O CI (`.github/workflows/ci.yml`) roda `npm test` no Node 24 em pull requests e pushes na `main`.
+
 Node >= 18, zero dependências runtime.
