@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, existsSync, readFileSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, existsSync, readFileSync, mkdirSync, chmodSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -270,6 +270,25 @@ test('uninstall: remove default_agent do bento e preserva o do usuário', () => 
   assert.equal(r2.status, 0);
   const obj = JSON.parse(readFileSync(join(dir2, 'opencode.json'), 'utf8'));
   assert.equal(obj.default_agent, 'build');
+});
+
+test('uninstall: não toca em ferramentas globais (gh-stack, codegraph, agent-browser)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  spawnSync(process.execPath, [BIN, 'update'], { cwd: dir, encoding: 'utf8' });
+  const fakeBin = mkdtempSync(join(tmpdir(), 'bento-fake-'));
+  const log = join(fakeBin, 'calls.log');
+  for (const name of ['npm', 'gh']) {
+    writeFileSync(join(fakeBin, name), `#!/bin/sh\necho "${name} $@" >> ${JSON.stringify(log)}\n`);
+    chmodSync(join(fakeBin, name), 0o755);
+  }
+  const r = spawnSync(process.execPath, [BIN, 'uninstall'], {
+    cwd: dir,
+    encoding: 'utf8',
+    env: { ...process.env, PATH: `${fakeBin}:${process.env.PATH}` },
+  });
+  assert.equal(r.status, 0);
+  const calls = existsSync(log) ? readFileSync(log, 'utf8') : '';
+  assert.equal(calls, '', `chamadas globais inesperadas:\n${calls}`);
 });
 
 test('uninstall: remove o agent reviewer', () => {
