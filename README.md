@@ -156,3 +156,17 @@ node --test test/validate.test.mjs  # a single file
 ```
 
 CI runs `npm test` on Node 24 for every pull request and push to `main`. Node >= 18, ESM, zero runtime dependencies. This repo is the source of everything installed into consumers: changes to `lib/`, `templates/`, or `skills/` only reach them through `bento install`/`update`.
+
+## 🍱 Dogfooding (this repository)
+
+This repo consumes bento itself. Derived artifacts (`.bento/`, `.opencode/`, `opencode.json`, `.codegraph/`) are git-ignored.
+
+```bash
+npm run dogfood:setup   # once per clone: full install (global CLIs, gh-stack, hook, codegraph index)
+npm run dogfood         # after changing lib/, templates/, skills/, or agents
+```
+
+- The committed `scripts/pr-split-verify.mjs` shim points at `../lib/validate.mjs` (live); the npm scripts pass `--no-shim` so it is never overwritten.
+- In fresh worktrees, run `npm run dogfood` inside the worktree to create `.bento/hooks` there; otherwise that worktree's pushes skip the hook.
+- The hook checks every pushed branch against its stack base; keep local `main` in sync with `origin/main`.
+- `bento uninstall` in this repo removes tracked files (`.pr-limits.yaml`, `.bento.yaml`, and the `## Bento` section of `AGENTS.md`); recover with `git restore`.
