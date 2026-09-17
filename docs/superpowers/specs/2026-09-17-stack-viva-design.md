@@ -17,7 +17,7 @@ Eliminar o split retroativo (Modo 3) como caminho comum: o trabalho é dividido 
   - PRs entram no ar **só no fim** (`gh stack submit`); durante o dev só branches locais.
   - Fix em camada inferior: **política A** — fix na própria camada + um rebase agrupado.
   - **Sessões livres quanto a stacks** (uma sessão pode produzir 0, 1 ou N stacks); a proteção contra stack gigante vem do **escopo da sessão**, não da estrutura.
-  - **Topologia de agents em 3 níveis (teto rígido)**: nível 1 **`orchestrator`** (primary) lê o roadmap e dispara, em ordem, um nível 2 **`session`** por sessão (contexto novo a cada sessão); o `session` invoca os nível 3 (`implementer` para implementação, `verify` para review, `explorer`/`browser` para apoio) e roda o stack. Nível 3 tem `task: deny` — sem quarto nível. Gates (violação, rebase difícil, merge) **sobem ao coordenador**, que pergunta ao usuário com `question` e retoma a sessão via `task_id` com a decisão.
+  - **Topologia de agents em 2 níveis (teto rígido)**: nível 1 **`orchestrator`** (primary) lê o roadmap e executa as sessões em ordem, rodando o stack e disparando os nível 2 — `implementer` (implementação), `verify` (review/verificação), `explorer`/`browser` (apoio). Nível 2 é todo terminal (`task: deny`) — sem terceiro nível; `general` fica fora do glob. Violação, rebase difícil e merge são gates que o próprio orquestrador pergunta ao usuário (`question`).
   - Divisão em sessões: **roadmap fechado na spec** (brainstorming) e **plano por sessão** (writing-plans detalha só a sessão atual; a próxima ganha plano próprio ao começar).
   - Escopo da sessão: **1 entregável demonstrável + estimativa total de camadas/linhas**; heurística explícita — estimativa total da sessão acima de ~3× o limite do PR → dividir a sessão antes de planejar as tasks. Sem sintaxe nova no `.pr-limits.yaml`.
   - Papel do small-prs: **backstop** para estimativa levemente errada ou task legitimamente maior para entregar — não é o mecanismo primário de corte.
@@ -37,7 +37,7 @@ O brainstorming/spec fecha um **roadmap de sessões** antes de qualquer plano de
 - Toda sessão declara **1 entregável demonstrável** (o que fica funcionando/mostrável ao fim). Sem entregável nomeável, não é sessão.
 - Heurística de corte: estimativa total da sessão > ~3× o limite do PR (default 400 → ~1200 linhas) → dividir a sessão já no roadmap.
 - Estimativa é estimativa: imprevisto que estoure o limite de uma camada durante a execução cai no gate do Modo 1.5 (parar e perguntar), nunca em "continuo e resolvo no fim".
-- Cada sessão é um plano próprio e roda como **subagent de sessão** (contexto novo): o dispatch passa **caminhos** (spec/roadmap, plano `-s<N>`, limites), nunca resumo de histórico. O coordenador guarda só os recibos (status, camadas, orçamento).
+- Cada sessão tem um plano próprio (`-s<N>`) e é executada pelo orquestrador em sequência; dispatch para os workers passa **caminhos** (spec/roadmap, plano, limites), nunca resumo de histórico. Status e orçamento por camada ficam no ledger/recibo da sessão, não no histórico de mensagens.
 - Sessões com dependência só começam depois que as anteriores entregaram (merge); o roadmap declara a ordem.
 - Plano da sessão vive em `docs/superpowers/plans/YYYY-MM-DD-<assunto>-s<N>.md` (mesmo diretório/estilo dos planos atuais).
 
@@ -70,7 +70,7 @@ Por task, nesta ordem:
 
 ### Fim (Modo 2/4)
 
-- Modo 4 inalterado: reviews por camada (worktrees, reviewers limpos) → `gh stack submit --auto --open` → `gh pr edit` por PR (título/corpo com foco de review) → merge via `finishing-a-development-branch`. Tudo isso roda **dentro do subagent de sessão**; o merge (decisão do usuário) é gate e sobe ao coordenador.
+- Modo 4 inalterado: reviews por camada (worktrees, reviewers limpos) → `gh stack submit --auto --open` → `gh pr edit` por PR (título/corpo com foco de review) → merge via `finishing-a-development-branch`. Tudo isso é orquestrado pelo `orchestrator`; o merge (decisão do usuário) é gate e ele pergunta antes.
 - `equivalence` deixa de ser passo do fluxo novo (nada é reescrito); continua existindo para o Modo 3 legado (branch já grande chegando de fora).
 
 ## Hook stack-aware
@@ -85,23 +85,22 @@ Por task, nesta ordem:
 
 - `skills/small-prs/SKILL.md`: descrição atualizada (citar execução/checkpoint por camada, para a skill ser invocada ao executar planos), Modo 1 com a spec de **sessões/roadmap** e do stack, e novo **Modo 1.5** com o loop, o gate "para e pergunta" e a política A. O papel de backstop fica explícito: o corte primário é o roadmap (entregável + heurística 3×); o `check` pega o que a estimativa errou.
 - Novos templates em `templates/agents/` (mesmo mecanismo do `agents.mjs`: marcador `bento: agent`, instala só se ausente, uninstall remove só o que tem o marcador):
-  - `orchestrator.md` (primary): lê o roadmap da spec e dispara um `session` por sessão, em ordem; guarda recibo por sessão (status, camadas, orçamento); é o **único** que usa `question` para gates. `permission.task` = `{"*": deny, "session": allow}`.
-  - `session.md` (subagent): executa o Modo 1.5 (stack, `check` por camada, política A) e conduz o Modo 4, despachando nível 3. `permission.task` = `{"*": deny, "implementer": allow, "verify": allow, "explorer": allow, "browser": allow}` — **`general` fica fora** (seria o quarto nível); quando o texto do superpowers disser "general-purpose", despachar `implementer` (implementação) ou `verify` (review). `skill` liberado (small-prs, fluxo superpowers); `bash` liberado (stack/check/git).
-  - `implementer.md` (subagent, nível 3): implementa/testa/commita a task; `permission.task: deny`, `edit`/`bash` liberados, `skill` liberado (TDD); instruído a não despachar subagents.
-  - Nível 3 é todo terminal: `implementer` (novo) e os existentes `verify`, `explorer`, `browser` mantêm `task: deny` — é o que garante o teto mecanicamente.
+  - `orchestrator.md` (primary): lê o roadmap da spec, detalha o plano da sessão atual (writing-plans + Modo 1 do small-prs), executa o Modo 1.5/4 rodando o stack e disparando os workers. `permission.task` = `{"*": deny, "implementer": allow, "verify": allow, "explorer": allow, "browser": allow}` — **`general` fica fora** (quebraria o teto); quando o texto do superpowers disser "general-purpose", despachar `implementer` (implementação) ou `verify` (review). `skill` liberado (small-prs, superpowers), `bash` liberado (stack/check/git), `edit` liberado (plano/ledger); é o **único** que usa `question` para gates.
+  - `implementer.md` (subagent, nível 2): implementa/testa/commita a task; `permission.task: deny`, `edit`/`bash` liberados, `skill` liberado (TDD); instruído a não despachar subagents.
+  - Nível 2 é todo terminal: `implementer` (novo) e os existentes `verify`, `explorer`, `browser` mantêm `task: deny` — é o que garante o teto mecanicamente.
 - `templates/agents/verify.md` acumula o papel de reviewer por camada do Modo 4 (contrato spec compliance + quality); ganha allow de bash para os comandos de verificação do fluxo (testes/lint do projeto, `bento check`/shim `pr-split-verify.mjs check`), preservando `edit: deny`/`task: deny`.
-- Gates não morrem no aninhamento: o `session` devolve `gate` + relatório, **não decide**; o coordenador pergunta ao usuário e retoma o mesmo `task_id` do `session` com a decisão (sem re-explorar contexto).
-- `lib/agents.mjs`: `AGENT_NAMES` e `wantedAgents` incluem `orchestrator`/`session`/`implementer` no grupo `profile` (saem com `--no-profile`; install só se ausente; uninstall remove só com marcador).
+- Gates: worker que detecta violação/rebate devolve o relatório **sem decidir**; o orquestrador pergunta ao usuário e retoma o worker pelo `task_id` com a decisão (sem re-explorar contexto).
+- `lib/agents.mjs`: `AGENT_NAMES` e `wantedAgents` incluem `orchestrator`/`implementer` no grupo `profile` (saem com `--no-profile`; install só se ausente; uninstall remove só com marcador).
 - Fluxo atual de agents preservado: `flash` segue primary enxuto e `default_agent` continua `flash`; `superpowers` inalterado.
 - `templates/agents/flash.md`: trocar o item "antes de abrir PR" por checkpoint por task/camada + sessão bem escopada (entregável + estimativa).
-- `templates/agents-section.md`: bullets de sessões/roadmap, topologia em 3 níveis (`orchestrator`/`session`/`implementer`) e stack viva (`gh stack add` por task, `check` por camada antes de seguir, violação = parar).
+- `templates/agents-section.md`: bullets de sessões/roadmap, topologia em 2 níveis (`orchestrator`/`implementer`) e stack viva (`gh stack add` por task, `check` por camada antes de seguir, violação = parar).
 - `lib/install.mjs`: shim `SHIM` atualizado com o subcomando `check-push`.
 
 ## Tokens
 
 - **Evita** o custo caro do Modo 3: análise de dependências, `git apply` por camada, `equivalence` e debugging de divergência.
-- **Evita** plano/contexto desperdiçado: roadmap raso + plano detalhado só da sessão atual (planejamento progressivo); coordenador carrega só recibos, cada `session` nasce em contexto novo e os gates retomam o mesmo `task_id` em vez de re-despachar.
-- **Custo novo:** ~2–3 tool calls por task (`gh stack add`, `check`, registro), saída curta; zero push/CI incremental; um hop de sumarização por sessão (não por task).
+- **Evita** plano/contexto desperdiçado: roadmap raso + plano detalhado só da sessão atual (planejamento progressivo); o orquestrador concentra o contexto das sessões (trade-off aceito da topologia de 2 níveis), mas o volume pesado (implementação, diffs, reviews, exploração) morre nos subagents, e gates retomam o mesmo `task_id` em vez de re-despachar.
+- **Custo novo:** ~2–3 tool calls por task (`gh stack add`, `check`, registro), saída curta; zero push/CI incremental; hops de sumarização só nas tasks despachadas (sem camada intermediária por sessão).
 - **Riscos e mitigação:** rebase em cascata só quando há fix em camada inferior — agrupar fixes e rebasear uma vez; detecção precoce (suíte completa + self-review no checkpoint) para pegar defeito quando há poucas camadas acima; Modo 4 e `gh pr edit` continuam 1× no fim, igual a hoje.
 
 ## Testes
@@ -123,13 +122,13 @@ Sessões/roadmap são texto de processo (skill + templates); o que é mecânico 
 
 `test/install.test.mjs`: shim contém `check-push`; hook copiado chama `check-push`.
 
-`test/agents.test.mjs` e `test/cli.test.mjs`: `orchestrator`/`session`/`implementer` instalados no grupo profile, pulados com `--no-profile`, uninstall remove só o que tem o marcador; arquivo do usuário com mesmo nome é preservado.
+`test/agents.test.mjs` e `test/cli.test.mjs`: `orchestrator`/`implementer` instalados no grupo profile, pulados com `--no-profile`, uninstall remove só o que tem o marcador; arquivo do usuário com mesmo nome é preservado.
 
 `test/cli.test.mjs`: `bento check <base> <head>` inalterado.
 
 ## Docs
 
-- README: seção do fluxo (sessões/roadmap, stack viva, submit no fim), topologia em 3 níveis (`orchestrator`/`session`/`implementer`) e nota do hook stack-aware.
+- README: seção do fluxo (sessões/roadmap, stack viva, submit no fim), topologia em 2 níveis (`orchestrator`/`implementer`) e nota do hook stack-aware.
 - AGENTS.md: bullet do fluxo sessões + stack viva + `lib/stack.mjs` (ou equivalente) e agents novos na Arquitetura.
 - Help do `bento` inalterado (nenhum comando novo na CLI).
 
