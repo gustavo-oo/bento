@@ -13,6 +13,6 @@
 
 ### Agents (bento)
 
-- Switch with Tab: `flash` (lean, default), `superpowers` (full skills workflow), and `orchestrator` (runs the session roadmap and dispatches subagents).
-- Delegate with `@explorer` (codegraph, read-only), `@verify` (independent verification/review), `@reviewer` (adversarial review), and `@browser` (web automation); `implementer` is the implementation worker (level 2, no subagents).
+- `flash` is the single primary (default): small steps, the full skills workflow when the task calls for it, and delegation.
+- Delegate with `@explorer` (codegraph, read-only), `@verify` (independent verification/review), `@reviewer` (adversarial review), and `@browser` (web automation); the primary implements itself (no third level; `general` stays out).
 - `.opencode/agents/*.md` are yours: edit `model`, `temperature`, and permissions freely; `bento update` does not overwrite them.
