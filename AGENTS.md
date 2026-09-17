@@ -41,12 +41,14 @@ CI: `.github/workflows/ci.yml` roda `npm test` no Node 24 em PRs e push na `main
 - `skills/agent-browser/SKILL.md` — stub que aponta para `agent-browser skills get core`; o conteúdo real vem do CLI instalado.
 - `skills/self-review/SKILL.md` — gate de review interno (skill bento, não vendada): 2 revisores com mandatos complementares (`verify` regressão + `reviewer` adversarial), repro obrigatória para High/Medium, validação cruzada, ledger local em `.superpowers/self-review/`, teto de 3 rodadas de re-review.
 - `templates/agents/` — fonte dos agents `flash`, `superpowers` (bootstrap adaptado, MIT), `orchestrator`, `implementer`, `explorer`, `verify`, `reviewer`, `browser`.
+- `README.md` — porta de entrada para humanos (em inglês, banner em `assets/banner.svg`; o que vem na caixa, instalação com agente, agents e guardrails de PR); `AGENT_INSTALL.md` — roteiro passo a passo (em inglês) que um agente segue para instalar num consumidor (pré-requisitos, flags, verificação e relatório), alvo do prompt de instalação do README.
 
 ## Regras
 
 - Node puro (>= 18), ESM, zero deps runtime.
 - TDD obrigatório (node:test): teste antes da implementação.
 - Testes não podem depender de rede nem de `gh` instalado.
-- Mensagens de CLI, docs e commits em PT-BR; conventional commits (feat:, fix:, docs:, refactor:, test:).
+- Mensagens de CLI e commits em PT-BR; `README.md` e `AGENT_INSTALL.md` em inglês; demais docs em PT-BR; conventional commits (feat:, fix:, docs:, refactor:, test:).
+- Mudou flag/comportamento de `install`/`update`/`uninstall`? Atualize `README.md` e `AGENT_INSTALL.md` junto.
 - Planos/specs em `docs/superpowers/plans/` e `docs/superpowers/specs/` com nome `YYYY-MM-DD-<assunto>.md`; planos de sessão usam `YYYY-MM-DD-<assunto>-s<N>.md`.
 - `uninstall` só remove o que reconhece como seu (shim contendo `.bento/lib/validate.mjs`; seção `## Bento (small-prs)`); arquivos do usuário com nomes iguais são preservados.
