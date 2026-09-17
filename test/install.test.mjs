@@ -31,6 +31,13 @@ test('install: copia a skill taste-skill para .opencode/skills/taste-skill', () 
   assert.equal(copiada, vendada);
 });
 
+test('install: copia a skill self-review', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
+  install(dir, {});
+  const src = readFileSync(new URL('../skills/self-review/SKILL.md', import.meta.url), 'utf8');
+  assert.equal(readFileSync(join(dir, '.opencode', 'skills', 'self-review', 'SKILL.md'), 'utf8'), src);
+});
+
 test('install: cria .pr-limits.yaml quando ausente e é idempotente', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
   install(dir, {});
@@ -100,6 +107,14 @@ test('uninstall: remove a skill taste-skill', () => {
   const { removed } = uninstall(dir);
   assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'taste-skill')));
   assert.ok(removed.includes('.opencode/skills/taste-skill'));
+});
+
+test('uninstall: remove a skill self-review', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-uninstall-'));
+  install(dir, {});
+  const { removed } = uninstall(dir);
+  assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'self-review')));
+  assert.ok(removed.includes('.opencode/skills/self-review'));
 });
 
 test('uninstall: idempotente em projeto limpo', () => {
@@ -202,6 +217,7 @@ test('install: noProfile não cria agents do perfil; noCodegraph/noAgentBrowser 
   const dir = mkdtempSync(join(tmpdir(), 'bento-agents-install-'));
   install(dir, { noProfile: true });
   assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'flash.md')));
+  assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'reviewer.md')));
   assert.ok(existsSync(join(dir, '.opencode', 'skills', 'brainstorming')));
   const dir2 = mkdtempSync(join(tmpdir(), 'bento-agents-install-'));
   install(dir2, { noCodegraph: true, noAgentBrowser: true });
