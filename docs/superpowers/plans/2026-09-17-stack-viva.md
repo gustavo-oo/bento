@@ -826,7 +826,7 @@ Substitua `skills/small-prs/SKILL.md` inteiro por:
 ````markdown
 ---
 name: small-prs
-description: Previne, valida, corrige e revisa PRs grandes no fluxo opencode (superpowers). Use ao planejar (roadmap de sessões + camadas do stack), ao executar planos (stack viva: gh stack add por task + check por camada; violação = parar), antes de abrir um PR (pr-split-verify), quando um diff avulso exceder os limites de .pr-limits.yaml (split em cadeia via gh-stack) e para revisão independente por camada (subagentes limpos).
+description: Previne, valida, corrige e revisa PRs grandes no fluxo opencode (superpowers). Use ao planejar (roadmap de sessões + camadas do stack), ao executar planos (stack viva — gh stack add por task + check por camada; violação = parar), antes de abrir um PR (pr-split-verify), quando um diff avulso exceder os limites de .pr-limits.yaml (split em cadeia via gh-stack) e para revisão independente por camada (subagentes limpos).
 ---
 
 # small-prs — prevenção, validação, correção e revisão de PRs grandes
