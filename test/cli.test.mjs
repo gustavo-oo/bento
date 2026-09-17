@@ -129,6 +129,19 @@ test('update: migra .pr-limits.yaml para .bento.yaml e reporta', () => {
   assert.ok(config.includes('max_files: 7'));
 });
 
+test('update --no-shim preserves an existing shim; without the flag it installs bento\'s', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  mkdirSync(join(dir, 'scripts'), { recursive: true });
+  const sentinel = '#!/usr/bin/env node\nconsole.log("my shim");\n';
+  writeFileSync(join(dir, 'scripts', 'pr-split-verify.mjs'), sentinel);
+  const skipped = spawnSync(process.execPath, [BIN, 'update', '--no-shim'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(skipped.status, 0);
+  assert.equal(readFileSync(join(dir, 'scripts', 'pr-split-verify.mjs'), 'utf8'), sentinel);
+  const overwritten = spawnSync(process.execPath, [BIN, 'update'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(overwritten.status, 0);
+  assert.ok(readFileSync(join(dir, 'scripts', 'pr-split-verify.mjs'), 'utf8').includes('../.bento/lib/validate.mjs'));
+});
+
 test('update funciona a partir da cópia instalada (.bento/bin/bento.mjs)', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
   const first = spawnSync(process.execPath, [BIN, 'update'], { cwd: dir, encoding: 'utf8' });
