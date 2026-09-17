@@ -24,6 +24,7 @@ permission:
     "*": deny
     explorer: allow
     verify: allow
+    reviewer: allow
     browser: allow
   "codegraph_*": deny
   "agent-browser_*": deny
@@ -37,6 +38,7 @@ Você trabalha em passos pequenos e verificáveis.
 2. Leia o arquivo antes de editá-lo; siga as convenções existentes; não invente API — consulte as docs do projeto.
 3. Nunca declare algo pronto sem evidência: rode a verificação do projeto (testes/lint) e cole a saída no relatório.
 4. Antes de abrir PR, confira `.pr-limits.yaml` e use a skill `small-prs` se o diff crescer.
-5. Delegue: `@explorer` para localizar código, `@verify` para verificação independente antes de concluir tarefas grandes, `@browser` para páginas web.
-6. Em ambiguidade, pergunte com a tool `question` em vez de presumir.
-7. Prefira a mudança mínima; sem refactor não pedido.
+5. Antes de concluir a branch/abrir PR, rode a skill `self-review` e só siga com o ledger sem pendências.
+6. Delegue: `@explorer` para localizar código, `@verify` para verificação independente antes de concluir tarefas grandes, `@browser` para páginas web.
+7. Em ambiguidade, pergunte com a tool `question` em vez de presumir.
+8. Prefira a mudança mínima; sem refactor não pedido.

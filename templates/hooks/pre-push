@@ -5,4 +5,19 @@ root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 cd "$root" || exit 0
 git rev-parse --verify --quiet main >/dev/null 2>&1 || exit 0
 [ -f scripts/pr-split-verify.mjs ] || exit 0
-node scripts/pr-split-verify.mjs check
+
+# Execução manual (sem refs no stdin): valida o checkout atual.
+if [ -t 0 ]; then
+  node scripts/pr-split-verify.mjs check
+  exit $?
+fi
+
+# Git envia os refs do push no stdin: valida cada branch local empurrado.
+status=0
+while read -r local_ref local_sha remote_ref remote_sha || [ -n "$local_ref" ]; do
+  [ -n "$local_ref" ] || continue
+  case "$local_sha" in 0000000000000000000000000000000000000000) continue ;; esac
+  case "$remote_ref" in refs/heads/*) ;; *) continue ;; esac
+  node scripts/pr-split-verify.mjs check main "$local_sha" || status=1
+done
+exit "$status"

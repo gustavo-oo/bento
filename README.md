@@ -1,6 +1,6 @@
 # bento
 
-CLI do fluxo opencode pessoal: instala e mantém, num projeto consumidor, a skill `small-prs` (limites de tamanho de PR + split em camadas), o plugin ponytail, as skills vendadas do superpowers e agents escopados, os MCP servers codegraph e agent-browser, as skills agent-browser e taste-skill e um hook pre-push.
+CLI do fluxo opencode pessoal: instala e mantém, num projeto consumidor, a skill `small-prs` (limites de tamanho de PR + split em camadas), o plugin ponytail, as skills vendadas do superpowers, o gate de review interno `self-review` e agents escopados, os MCP servers codegraph e agent-browser, as skills agent-browser e taste-skill e um hook pre-push.
 
 ## Instalação (no projeto consumidor)
 
@@ -13,8 +13,11 @@ node bin/bento.mjs update         # re-instala mantendo .pr-limits.yaml local
 
 `install` exige `gh` (instala a extensão gh-stack) e sai com 1 sem ele. `update` não toca em gh-stack, não instala CLIs globais e não re-indexa o codegraph. Depois de instalado, `node .bento/bin/bento.mjs update` também funciona.
 
+> `install`/`update` não alteram agents nem a seção `## Bento` já existentes: se o seu install é anterior ao gate `self-review`, remova `.opencode/agents/flash.md` e o trecho antigo do `AGENTS.md` e rode `update` de novo (o CLI avisa quando falta).
+
 Instala:
 - `.opencode/skills/small-prs/SKILL.md` — skill opencode (prevenção/validação/correção)
+- `.opencode/skills/self-review/SKILL.md` — gate de review interno: 2 revisores (regressão + adversarial), repro para High/Medium e ledger local
 - `.opencode/skills/taste-skill/SKILL.md` — skill opencode de design anti-slop (design-taste-frontend)
 - `.opencode/skills/agent-browser/SKILL.md` — stub da skill agent-browser (pule com `--no-agent-browser`)
 - `scripts/pr-split-verify.mjs` — shim para `check` e `equivalence`
@@ -22,8 +25,8 @@ Instala:
 - `.pr-limits.yaml` — config (criada só se ausente; nunca sobrescrita)
 - `.bento/hooks/pre-push` + `core.hooksPath` — hook que bloqueia push com diff acima dos limites (pule com `--no-hooks`; config local por clone; `git push --no-verify` burla — conveniência, não segurança)
 - `.opencode/skills/` — 14 skills do superpowers vendadas (v6.1.1, MIT; pule com `--no-superpowers`)
-- `.opencode/agents/` — agents `flash` (padrão), `superpowers`, `explorer`, `verify`, `browser` (pule com `--no-profile`; o agent `superpowers` segue `--no-superpowers`; `explorer`/`browser` seguem `--no-codegraph`/`--no-agent-browser`)
-- `default_agent: flash` no `opencode.json`/`.jsonc` — só se ausente (pule com `--no-profile`)
+- `.opencode/agents/` — agents `flash` (padrão), `superpowers`, `explorer`, `verify`, `reviewer`, `browser` (pule com `--no-profile`; o agent `superpowers` segue `--no-superpowers`; `explorer`/`browser` seguem `--no-codegraph`/`--no-agent-browser`)
+- `default_agent: flash` no `opencode.json`/`.jsonc` — só se ausente e o `flash` instalado for do bento (pule com `--no-profile`)
 - `ponytail` — plugin adicionado ao `opencode.json`/`.jsonc` (pule com `--no-ponytail`)
 - `codegraph` — CLI global `@colbymchenry/codegraph`, MCP server (`codegraph serve --mcp`) e `codegraph init` (pule com `--no-codegraph`)
 - `agent-browser` — CLI global + Chrome, MCP server (`agent-browser mcp`) e skill (pule com `--no-agent-browser`)
@@ -43,6 +46,7 @@ Remove:
 - `.opencode/skills/small-prs/` — skill opencode
 - `.opencode/skills/taste-skill/` — skill opencode de design
 - `.opencode/skills/agent-browser/` — skill opencode
+- `.opencode/skills/self-review/` — skill do gate de review interno
 - `.opencode/skills/<skill vendada>/` — só se idêntica à cópia instalada (modificadas são preservadas)
 - `.opencode/agents/*.md` — só agents com o marcador do bento (os seus são preservados)
 - `default_agent` do `opencode.json`/`.jsonc` — só se for `flash` e o agent removido era do bento
@@ -64,7 +68,7 @@ bento equivalence <base> <head> <camada1> [camada2 …]  # prova que as camadas 
 node scripts/pr-split-verify.mjs check                 # idem (via shim instalado)
 ```
 
-O pre-push roda `check` (base `main`) automaticamente a cada `git push`; acima do limite o push é abortado.
+O pre-push roda `check` (base `main`) automaticamente a cada `git push`, para cada branch empurrado (refs do stdin); acima do limite o push é abortado.
 
 Exit codes: `0` ok, `1` violação/divergência, `2` uso inválido.
 
@@ -74,7 +78,7 @@ Exit codes: `0` ok, `1` violação/divergência, `2` uso inválido.
 2. **Validação** — antes de abrir PR, rode `check`; acima do limite o PR é bloqueado.
 3. **Correção** — com aprovação: split em camadas coerentes, equivalência verificada, entrega em cadeia via `gh stack push`/`gh stack submit` (alias `gs` disponível via `gh stack alias`, opcional).
 
-Os agents escopados organizam o uso: `flash` (padrão enxuto), `superpowers` (skills completas), `explorer`, `verify` e `browser`. Troque com Tab; edite os `.md` em `.opencode/agents/` para ajustar modelo/temperatura.
+Os agents escopados organizam o uso: `flash` (padrão enxuto), `superpowers` (skills completas), `explorer`, `verify`, `reviewer` e `browser`. Troque com Tab; edite os `.md` em `.opencode/agents/` para ajustar modelo/temperatura.
 
 ## Config `.pr-limits.yaml`
 

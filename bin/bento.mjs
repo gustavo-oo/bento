@@ -4,6 +4,7 @@ import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { runCheck, runEquivalence } from '../lib/validate.mjs';
 import { install, uninstall } from '../lib/install.mjs';
+import { hasBentoAgent } from '../lib/agents.mjs';
 import { addPonytailPlugin, removePonytailPlugin, removeSuperpowersPlugin, setDefaultAgentIfAbsent, removeDefaultAgentIf } from '../lib/opencode-config.mjs';
 import { addMcpServer, removeMcpServer, CODEGRAPH_MCP, AGENT_BROWSER_MCP } from '../lib/mcp-config.mjs';
 import { ensureCodegraph, ensureAgentBrowser, initCodegraph, removeCodegraph, removeAgentBrowser } from '../lib/tools.mjs';
@@ -53,7 +54,7 @@ function run() {
       if (result.agents.created.length > 0) {
         console.log(`  agents → ${result.agents.created.map((n) => `${n}.md`).join(', ')}`);
       }
-      if (!noProfile) {
+      if (!noProfile && hasBentoAgent(process.cwd(), 'flash')) {
         const da = setDefaultAgentIfAbsent(process.cwd());
         if (da && da.changed) console.log(`  default_agent → flash (${da.path})`);
       }
@@ -92,7 +93,7 @@ function run() {
       if (result.agents.created.length > 0) {
         console.log(`  agents → ${result.agents.created.map((n) => `${n}.md`).join(', ')}`);
       }
-      if (!noProfile) {
+      if (!noProfile && hasBentoAgent(process.cwd(), 'flash')) {
         const da = setDefaultAgentIfAbsent(process.cwd());
         if (da && da.changed) console.log(`  default_agent → flash (${da.path})`);
       }
