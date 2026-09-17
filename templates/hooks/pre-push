@@ -1,0 +1,8 @@
+#!/bin/sh
+# gerado pelo bento (templates/hooks/pre-push) — não edite; re-criado no update.
+set -e
+root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+cd "$root" || exit 0
+git rev-parse --verify --quiet main >/dev/null 2>&1 || exit 0
+[ -f scripts/pr-split-verify.mjs ] || exit 0
+node scripts/pr-split-verify.mjs check
