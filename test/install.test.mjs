@@ -31,6 +31,14 @@ test('install: copia a skill taste-skill para .opencode/skills/taste-skill', () 
   assert.equal(copiada, vendada);
 });
 
+test('install: copia a skill self-review', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
+  install(dir, {});
+  const src = readFileSync(new URL('../skills/self-review/SKILL.md', import.meta.url), 'utf8');
+  assert.equal(readFileSync(join(dir, '.opencode', 'skills', 'self-review', 'SKILL.md'), 'utf8'), src);
+  assert.ok(existsSync(join(dir, '.opencode', 'agents', 'reviewer.md')));
+});
+
 test('install: cria .pr-limits.yaml quando ausente e é idempotente', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
   install(dir, {});
@@ -45,6 +53,26 @@ test('install: noAgents não cria AGENTS.md', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
   install(dir, { noAgents: true });
   assert.ok(!existsSync(join(dir, 'AGENTS.md')));
+});
+
+test('install: seção do AGENTS.md cita o gate de self-review', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
+  install(dir, {});
+  const agents = readFileSync(join(dir, 'AGENTS.md'), 'utf8');
+  assert.ok(agents.includes('self-review'));
+  assert.ok(agents.includes('@reviewer'));
+});
+
+test('install: avisa quando flash e seção existentes não citam o self-review', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-install-stale-'));
+  mkdirSync(join(dir, '.opencode', 'agents'), { recursive: true });
+  writeFileSync(join(dir, '.opencode', 'agents', 'flash.md'), '---\n# bento: agent v1\ndescription: antigo\n---\nvelho\n');
+  writeFileSync(join(dir, 'AGENTS.md'), '## Bento (small-prs)\n\n- regra antiga\n');
+  const mock = t.mock.method(console, 'error', () => {});
+  install(dir, {});
+  const calls = mock.mock.calls.map((c) => c.arguments[0]);
+  assert.ok(calls.some((m) => m.includes('flash.md não cita o gate')), calls.join('\n'));
+  assert.ok(calls.some((m) => m.includes('seção ## Bento existente não cita o self-review')), calls.join('\n'));
 });
 
 test('install: shim importa de ../.bento/lib/validate.mjs', () => {
@@ -100,6 +128,15 @@ test('uninstall: remove a skill taste-skill', () => {
   const { removed } = uninstall(dir);
   assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'taste-skill')));
   assert.ok(removed.includes('.opencode/skills/taste-skill'));
+});
+
+test('uninstall: remove a skill self-review', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-uninstall-'));
+  install(dir, {});
+  const { removed } = uninstall(dir);
+  assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'self-review')));
+  assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'reviewer.md')));
+  assert.ok(removed.includes('.opencode/skills/self-review'));
 });
 
 test('uninstall: idempotente em projeto limpo', () => {
@@ -202,6 +239,7 @@ test('install: noProfile não cria agents do perfil; noCodegraph/noAgentBrowser 
   const dir = mkdtempSync(join(tmpdir(), 'bento-agents-install-'));
   install(dir, { noProfile: true });
   assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'flash.md')));
+  assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'reviewer.md')));
   assert.ok(existsSync(join(dir, '.opencode', 'skills', 'brainstorming')));
   const dir2 = mkdtempSync(join(tmpdir(), 'bento-agents-install-'));
   install(dir2, { noCodegraph: true, noAgentBrowser: true });

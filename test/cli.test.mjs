@@ -119,6 +119,7 @@ test('update: venda superpowers, cria agents, define default_agent e mantém pon
   assert.ok(existsSync(join(dir, '.opencode', 'skills', 'brainstorming', 'SKILL.md')));
   assert.ok(existsSync(join(dir, '.opencode', 'agents', 'flash.md')));
   assert.ok(existsSync(join(dir, '.opencode', 'agents', 'verify.md')));
+  assert.ok(existsSync(join(dir, '.opencode', 'agents', 'reviewer.md')));
   assert.ok(existsSync(join(dir, '.opencode', 'agents', 'orchestrator.md')));
   assert.ok(existsSync(join(dir, '.opencode', 'agents', 'implementer.md')));
   const obj = JSON.parse(readFileSync(join(dir, 'opencode.json'), 'utf8'));
@@ -226,6 +227,14 @@ test('uninstall: remove default_agent do bento e preserva o do usuário', () => 
   assert.equal(r2.status, 0);
   const obj = JSON.parse(readFileSync(join(dir2, 'opencode.json'), 'utf8'));
   assert.equal(obj.default_agent, 'build');
+});
+
+test('uninstall: remove o agent reviewer', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  spawnSync(process.execPath, [BIN, 'update'], { cwd: dir, encoding: 'utf8' });
+  const r = spawnSync(process.execPath, [BIN, 'uninstall'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'reviewer.md')));
 });
 
 test('uninstall: remove ponytail do opencode.json', () => {

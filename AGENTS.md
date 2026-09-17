@@ -1,6 +1,6 @@
 # AGENTS.md — bento
 
-CLI que instala/atualiza/remove, num projeto consumidor, o fluxo opencode pessoal: skill `small-prs` (limites de PR + sessões/stack viva), plugin ponytail, 14 skills vendadas do superpowers com agents escopados (`flash`, `superpowers`, `orchestrator`, `implementer`, `explorer`, `verify`, `browser`), MCP servers (codegraph, agent-browser), skill agent-browser/taste-skill, estilo de saída direto (skill `i-have-adhd` + `instructions` always-on) e hook pre-push stack-aware.
+CLI que instala/atualiza/remove, num projeto consumidor, o fluxo opencode pessoal: skill `small-prs` (limites de PR + sessões/stack viva), skill `self-review` (gate de review interno com 2 agentes), plugin ponytail, 14 skills vendadas do superpowers com agents escopados (`flash`, `superpowers`, `orchestrator`, `implementer`, `explorer`, `verify`, `reviewer`, `browser`), MCP servers (codegraph, agent-browser), skill agent-browser/taste-skill, estilo de saída direto (skill `i-have-adhd` + `instructions` always-on) e hook pre-push stack-aware.
 
 ## Commands
 
@@ -10,14 +10,16 @@ node --test test/validate.test.mjs  # um arquivo só
 node bin/bento.mjs check            # valida tamanho do diff main..HEAD
 ```
 
+CI: `.github/workflows/ci.yml` roda `npm test` no Node 24 em PRs e push na `main` (GitHub Actions).
+
 ## CLI (bin/bento.mjs)
 
 - `install` atua num projeto consumidor e exige `gh` (instala a extensão gh-stack) → exit 1 sem `gh`; `update` NÃO toca gh-stack.
-- `install`/`update` copiam `lib/`, `bin/`, `templates/` para `.bento/` (+ `.bento/VERSION`), vendam as 14 skills do superpowers, criam os agents escopados (`flash`, `superpowers`, `orchestrator`, `implementer`, `explorer`, `verify`, `browser`) em `.opencode/agents/` e o `default_agent` (só se ausente e o `flash` em disco for do bento), removem o plugin superpowers de instalações antigas e criam as skills do bento (`.opencode/skills/small-prs`, `taste-skill` e, salvo flag, `agent-browser`), o output style (`.opencode/skills/i-have-adhd`, `.opencode/instructions/i-have-adhd.md` e a chave `instructions` no `opencode.json`/`.jsonc`; pule com `--no-output-style`), o shim `scripts/pr-split-verify.mjs`, `.pr-limits.yaml` (só se ausente) e a seção `## Bento (small-prs)` no AGENTS.md.
+- `install`/`update` copiam `lib/`, `bin/`, `templates/` para `.bento/` (+ `.bento/VERSION`), vendam as 14 skills do superpowers, criam os agents escopados (`flash`, `superpowers`, `orchestrator`, `implementer`, `explorer`, `verify`, `reviewer`, `browser`) em `.opencode/agents/` e o `default_agent` (só se ausente e o `flash` em disco for do bento), removem o plugin superpowers de instalações antigas e criam as skills do bento (`.opencode/skills/small-prs`, `self-review`, `taste-skill` e, salvo flag, `agent-browser`), o output style (`.opencode/skills/i-have-adhd`, `.opencode/instructions/i-have-adhd.md` e a chave `instructions` no `opencode.json`/`.jsonc`; pule com `--no-output-style`), o shim `scripts/pr-split-verify.mjs`, `.pr-limits.yaml` (só se ausente) e a seção `## Bento (small-prs)` no AGENTS.md.
 - Flags de install/update: `--no-agents`, `--no-superpowers` (pula skills vendadas + agent superpowers; não mexe no plugin nem avança o snapshot `.bento/skills`), `--no-profile` (pula agents de perfil + `default_agent`), `--no-ponytail`, `--no-hooks`, `--no-codegraph`, `--no-agent-browser`, `--no-output-style`.
 - Plugins e MCP vão para `opencode.json`/`opencode.jsonc`; só `install` instala os CLIs globais e roda `codegraph init` — `update` não instala CLIs nem re-indexa o codegraph.
 - `--no-hooks` com hook de install anterior ativo emite aviso no stderr (o `core.hooksPath` permanece).
-- `check [base]` usa merge-base (`base...HEAD`); `equivalence <base> <head> <camada…>` exige camadas em cadeia (cada uma descendente da anterior).
+- `check [base]` usa merge-base (`base...HEAD`); `equivalence <base> <head> <camada…>` exige camadas em cadeia (cada uma descendente da anterior); `check-push` valida os refs de um push (base por ancestralidade entre eles).
 - Exit codes: `0` ok, `1` violação/divergência, `2` uso inválido.
 
 ## Arquitetura
@@ -37,7 +39,8 @@ node bin/bento.mjs check            # valida tamanho do diff main..HEAD
 - `skills/taste-skill/SKILL.md` — venda do upstream https://github.com/Leonxlnx/taste-skill (commit `ccbc15639c97057cbfcf32ecebc38ef716e4bb37`, 24/08/2026, MIT). Atualização manual: re-copiar do commit novo e atualizar este bullet.
 - `skills/i-have-adhd/SKILL.md` — venda do upstream https://github.com/ayghri/i-have-adhd (commit `b15d0be58f55b33972ba3e39709e0e5208ef30cb`, 16/09/2026, MIT). Atualização manual: re-copiar do commit novo e atualizar este bullet. `templates/instructions/i-have-adhd.md` — ruleset always-on (resumo do upstream + seção de artefatos humanos) instalado na chave `instructions`.
 - `skills/agent-browser/SKILL.md` — stub que aponta para `agent-browser skills get core`; o conteúdo real vem do CLI instalado.
-- `templates/agents/` — fonte dos agents `flash`, `superpowers` (bootstrap adaptado, MIT), `orchestrator`, `implementer`, `explorer`, `verify`, `browser`.
+- `skills/self-review/SKILL.md` — gate de review interno (skill bento, não vendada): 2 revisores com mandatos complementares (`verify` regressão + `reviewer` adversarial), repro obrigatória para High/Medium, validação cruzada, ledger local em `.superpowers/self-review/`, teto de 3 rodadas de re-review.
+- `templates/agents/` — fonte dos agents `flash`, `superpowers` (bootstrap adaptado, MIT), `orchestrator`, `implementer`, `explorer`, `verify`, `reviewer`, `browser`.
 
 ## Regras
 
