@@ -10,6 +10,8 @@ node --test test/validate.test.mjs  # um arquivo só
 node bin/bento.mjs check            # valida tamanho do diff main..HEAD
 ```
 
+CI: `.github/workflows/ci.yml` roda `npm test` no Node 24 em PRs e push na `main` (GitHub Actions).
+
 ## CLI (bin/bento.mjs)
 
 - `install` atua num projeto consumidor e exige `gh` (instala a extensão gh-stack) → exit 1 sem `gh`; `update` NÃO toca gh-stack.
