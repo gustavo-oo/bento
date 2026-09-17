@@ -164,7 +164,7 @@ test('uninstall: CLI remove e sai 0', () => {
   assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'small-prs', 'SKILL.md')));
 });
 
-test('update: venda superpowers, cria agents, define default_agent e mantém ponytail', () => {
+test('update: venda superpowers, cria os agents, define default_agent e mantém ponytail', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
   const r = spawnSync(process.execPath, [BIN, 'update'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0);
@@ -176,11 +176,21 @@ test('update: venda superpowers, cria agents, define default_agent e mantém pon
   assert.ok(existsSync(join(dir, '.opencode', 'agents', 'flash.md')));
   assert.ok(existsSync(join(dir, '.opencode', 'agents', 'verify.md')));
   assert.ok(existsSync(join(dir, '.opencode', 'agents', 'reviewer.md')));
-  assert.ok(existsSync(join(dir, '.opencode', 'agents', 'orchestrator.md')));
-  assert.ok(existsSync(join(dir, '.opencode', 'agents', 'implementer.md')));
+  assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'orchestrator.md')));
+  assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'implementer.md')));
   const obj = JSON.parse(readFileSync(join(dir, 'opencode.json'), 'utf8'));
   assert.deepEqual(obj.plugin, [PONYTAIL_PLUGIN]);
   assert.equal(obj.default_agent, 'flash');
+});
+
+test('update: avisa (e preserva) agents obsoletos de instalações antigas', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  mkdirSync(join(dir, '.opencode', 'agents'), { recursive: true });
+  writeFileSync(join(dir, '.opencode', 'agents', 'orchestrator.md'), '---\n# bento: agent v1\ndescription: antigo\n---\n');
+  const r = spawnSync(process.execPath, [BIN, 'update'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.ok(r.stderr.includes('orchestrator'));
+  assert.ok(existsSync(join(dir, '.opencode', 'agents', 'orchestrator.md')));
 });
 
 test('update: remove o plugin superpowers de instalações antigas', () => {
@@ -193,7 +203,7 @@ test('update: remove o plugin superpowers de instalações antigas', () => {
   assert.ok(!(obj.plugin ?? []).includes(SUPERPOWERS_PLUGIN));
 });
 
-test('update --no-superpowers: não venda skills, não cria agent superpowers e mantém ponytail', () => {
+test('update --no-superpowers: não venda skills e mantém ponytail', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
   const r = spawnSync(process.execPath, [BIN, 'update', '--no-superpowers'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0);
@@ -243,7 +253,7 @@ test('update --no-profile: não cria agents do perfil nem default_agent', () => 
   assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'flash.md')));
   assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'orchestrator.md')));
   assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'implementer.md')));
-  assert.ok(existsSync(join(dir, '.opencode', 'agents', 'superpowers.md')));
+  assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'superpowers.md')));
   assert.ok(existsSync(join(dir, '.opencode', 'skills', 'brainstorming', 'SKILL.md')));
   assert.ok(!existsSync(join(dir, 'opencode.json')));
 });
