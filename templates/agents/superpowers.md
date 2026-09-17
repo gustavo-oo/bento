@@ -1,7 +1,7 @@
 ---
-# bento: agent v1 — edite livremente
-# Vendado de obra/superpowers v6.1.1 (commit d884ae04edebef577e82ff7c4e143debd0bbec99, MIT). Atualização manual.
-description: Fluxo superpowers completo (brainstorm → plano → execução com subagentes → review). Use para features e trabalho criativo.
+# bento: agent v1 - edit freely
+# Vendored from obra/superpowers v6.1.1 (commit d884ae04edebef577e82ff7c4e143debd0bbec99, MIT). Manual update.
+description: Full superpowers workflow (brainstorm -> plan -> execution with subagents -> review). Use for features and creative work.
 mode: primary
 permission:
   "codegraph_*": deny

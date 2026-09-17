@@ -13,20 +13,20 @@ test('self-review: documenta ledger, severidades, repro e gate', () => {
   assert.ok(raw.includes('High'));
   assert.ok(raw.includes('Medium'));
   assert.ok(raw.includes('Low'));
-  assert.match(raw, /^## Severidade$/m);
+  assert.match(raw, /^## Severity$/m);
   assert.ok(raw.includes('repro'));
   assert.ok(raw.includes('small-prs'));
   assert.ok(raw.includes('verify'));
   assert.ok(raw.includes('reviewer'));
   assert.ok(raw.includes('finishing-a-development-branch'));
-  assert.ok(raw.includes('3 rodadas'));
-  assert.ok(raw.includes('local/inequívoco') || raw.includes('local/inequívoca'));
+  assert.ok(raw.includes('3 re-review rounds'));
+  assert.ok(raw.includes('local/unambiguous'));
 });
 
 test('self-review: proíbe postar no GitHub e editar skills vendadas', () => {
   const raw = skill('self-review');
   assert.ok(raw.includes('GitHub'));
-  assert.ok(raw.includes('vendadas'));
+  assert.ok(raw.includes('vendored'));
 });
 
 test('small-prs Modo 4 usa a skill self-review no whole-stack', () => {

@@ -25,10 +25,10 @@ function makeRepo() {
 test('sem argumento mostra uso e sai com 2', () => {
   const r = spawnSync(process.execPath, [BIN], { encoding: 'utf8' });
   assert.equal(r.status, 2);
-  assert.ok(r.stderr.includes('uso:'));
+  assert.ok(r.stderr.includes('usage:'));
 });
 
-test('check: diff acima do limite sai com 1 e reporta PR GRANDE', () => {
+test('check: diff acima do limite sai com 1 e reports OVERSIZED PR', () => {
   const dir = makeRepo();
   writeFileSync(join(dir, 'f.txt'), 'v1\n');
   git(['add', '-A'], dir);
@@ -41,7 +41,7 @@ test('check: diff acima do limite sai com 1 e reporta PR GRANDE', () => {
   writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 5\nmax_files: 10\n');
   const r = spawnSync(process.execPath, [BIN, 'check', 'main'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 1);
-  assert.ok(r.stderr.includes('PR GRANDE'));
+  assert.ok(r.stderr.includes('OVERSIZED PR'));
 });
 
 test('check: diff dentro dos limites sai com 0', () => {
@@ -76,7 +76,7 @@ test('check: usa three-dot (merge-base) — main avançado não conta como dele�
   writeFileSync(join(dir, '.pr-limits.yaml'), 'max_lines: 400\nmax_files: 10\n');
   const r = spawnSync(process.execPath, [BIN, 'check', 'main'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0);
-  assert.ok(r.stdout.includes('PR dentro dos limites.'));
+  assert.ok(r.stdout.includes('PR within limits.'));
 });
 
 test('update: instala sem exigir gh', () => {
@@ -104,6 +104,7 @@ test('uninstall: CLI remove e sai 0', () => {
   assert.ok(existsSync(join(dir, '.opencode', 'skills', 'small-prs', 'SKILL.md')));
   const r = spawnSync(process.execPath, [BIN, 'uninstall'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0);
+  assert.ok(r.stdout.includes('instructions'));
   assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'small-prs', 'SKILL.md')));
 });
 
@@ -119,6 +120,8 @@ test('update: venda superpowers, cria agents, define default_agent e mantém pon
   assert.ok(existsSync(join(dir, '.opencode', 'agents', 'flash.md')));
   assert.ok(existsSync(join(dir, '.opencode', 'agents', 'verify.md')));
   assert.ok(existsSync(join(dir, '.opencode', 'agents', 'reviewer.md')));
+  assert.ok(existsSync(join(dir, '.opencode', 'agents', 'orchestrator.md')));
+  assert.ok(existsSync(join(dir, '.opencode', 'agents', 'implementer.md')));
   const obj = JSON.parse(readFileSync(join(dir, 'opencode.json'), 'utf8'));
   assert.deepEqual(obj.plugin, [PONYTAIL_PLUGIN]);
   assert.equal(obj.default_agent, 'flash');
@@ -129,7 +132,7 @@ test('update: remove o plugin superpowers de instalações antigas', () => {
   writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ plugin: [SUPERPOWERS_PLUGIN] }, null, 2));
   const r = spawnSync(process.execPath, [BIN, 'update', '--no-ponytail', '--no-codegraph', '--no-agent-browser'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0);
-  assert.ok(r.stdout.includes('plugin removido'));
+  assert.ok(r.stdout.includes('plugin removed'));
   const obj = JSON.parse(readFileSync(join(dir, 'opencode.json'), 'utf8'));
   assert.ok(!(obj.plugin ?? []).includes(SUPERPOWERS_PLUGIN));
 });
@@ -162,7 +165,7 @@ test('update: preserva default_agent definido pelo usuário e avisa', () => {
   writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ default_agent: 'build' }, null, 2));
   const r = spawnSync(process.execPath, [BIN, 'update', '--no-ponytail', '--no-codegraph', '--no-agent-browser'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0);
-  assert.ok(r.stderr.includes('default_agent já definido'));
+  assert.ok(r.stderr.includes('default_agent already set'));
   const obj = JSON.parse(readFileSync(join(dir, 'opencode.json'), 'utf8'));
   assert.equal(obj.default_agent, 'build');
 });
@@ -173,14 +176,17 @@ test('update: flash do usuário (sem marcador) não vira default_agent', () => {
   writeFileSync(join(dir, '.opencode', 'agents', 'flash.md'), '---\ndescription: meu flash\n---\n');
   const r = spawnSync(process.execPath, [BIN, 'update', '--no-ponytail', '--no-codegraph', '--no-agent-browser'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0);
-  assert.ok(!existsSync(join(dir, 'opencode.json')));
+  const obj = JSON.parse(readFileSync(join(dir, 'opencode.json'), 'utf8'));
+  assert.equal(obj.default_agent, undefined);
 });
 
 test('update --no-profile: não cria agents do perfil nem default_agent', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
-  const r = spawnSync(process.execPath, [BIN, 'update', '--no-profile', '--no-ponytail', '--no-codegraph', '--no-agent-browser'], { cwd: dir, encoding: 'utf8' });
+  const r = spawnSync(process.execPath, [BIN, 'update', '--no-profile', '--no-ponytail', '--no-codegraph', '--no-agent-browser', '--no-output-style'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0);
   assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'flash.md')));
+  assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'orchestrator.md')));
+  assert.ok(!existsSync(join(dir, '.opencode', 'agents', 'implementer.md')));
   assert.ok(existsSync(join(dir, '.opencode', 'agents', 'superpowers.md')));
   assert.ok(existsSync(join(dir, '.opencode', 'skills', 'brainstorming', 'SKILL.md')));
   assert.ok(!existsSync(join(dir, 'opencode.json')));
@@ -189,7 +195,7 @@ test('update --no-profile: não cria agents do perfil nem default_agent', () => 
 test('update --no-superpowers --no-ponytail --no-codegraph --no-agent-browser: não toca opencode.json', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
   writeFileSync(join(dir, 'opencode.json'), '{ "theme": "dark" }');
-  const r = spawnSync(process.execPath, [BIN, 'update', '--no-superpowers', '--no-ponytail', '--no-codegraph', '--no-agent-browser', '--no-profile'], { cwd: dir, encoding: 'utf8' });
+  const r = spawnSync(process.execPath, [BIN, 'update', '--no-superpowers', '--no-ponytail', '--no-codegraph', '--no-agent-browser', '--no-profile', '--no-output-style'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0);
   assert.ok(!r.stdout.includes('superpowers'));
   assert.ok(!r.stdout.includes('ponytail'));
@@ -313,7 +319,7 @@ test('update --no-hooks: avisa que o pre-push continua ativo de install anterior
   assert.equal(first.status, 0);
   const r = spawnSync(process.execPath, [BIN, 'update', '--no-hooks'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0);
-  assert.ok(r.stderr.includes('pre-push ainda ativo'));
+  assert.ok(r.stderr.includes('pre-push still active'));
   const hp = execFileSync('git', ['config', '--local', '--get', 'core.hooksPath'], { cwd: dir, encoding: 'utf8' }).trim();
   assert.equal(hp, '.bento/hooks');
 });
@@ -336,4 +342,34 @@ test('update --no-superpowers: preserva plugin superpowers pré-existente', () =
   assert.equal(r.status, 0);
   const obj = JSON.parse(readFileSync(join(dir, 'opencode.json'), 'utf8'));
   assert.ok(obj.plugin.includes(SUPERPOWERS_PLUGIN));
+});
+
+test('update: registra o instructions do output style e loga', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  const r = spawnSync(process.execPath, [BIN, 'update'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.ok(r.stdout.includes('instructions'));
+  const obj = JSON.parse(readFileSync(join(dir, 'opencode.json'), 'utf8'));
+  assert.deepEqual(obj.instructions, ['.opencode/instructions/i-have-adhd.md']);
+  assert.ok(existsSync(join(dir, '.opencode', 'instructions', 'i-have-adhd.md')));
+});
+
+test('update --no-output-style: não copia nem registra, sem tocar no config', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  const r = spawnSync(process.execPath, [BIN, 'update', '--no-output-style', '--no-ponytail', '--no-codegraph', '--no-agent-browser', '--no-profile'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.ok(!r.stdout.includes('instructions'));
+  assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'i-have-adhd')));
+  assert.ok(!existsSync(join(dir, '.opencode', 'instructions')));
+  assert.ok(!existsSync(join(dir, 'opencode.json')));
+});
+
+test('uninstall: remove o instructions do config e os arquivos', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-cli-'));
+  spawnSync(process.execPath, [BIN, 'update'], { cwd: dir, encoding: 'utf8' });
+  const r = spawnSync(process.execPath, [BIN, 'uninstall'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.ok(!existsSync(join(dir, '.opencode', 'instructions', 'i-have-adhd.md')));
+  assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'i-have-adhd')));
+  assert.ok(!existsSync(join(dir, 'opencode.json')));
 });

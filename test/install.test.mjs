@@ -49,6 +49,17 @@ test('install: cria .pr-limits.yaml quando ausente e é idempotente', () => {
   assert.equal(first.split('## Bento').length, 2);
 });
 
+test('install: cria .bento.yaml quando ausente e preserva o existente', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-lang-'));
+  install(dir, {});
+  const created = readFileSync(join(dir, '.bento.yaml'), 'utf8');
+  assert.ok(created.includes('artifacts_language'));
+  assert.ok(readFileSync(join(dir, 'AGENTS.md'), 'utf8').includes('.bento.yaml'));
+  writeFileSync(join(dir, '.bento.yaml'), 'artifacts_language: Portuguese (pt-BR)\n');
+  install(dir, {});
+  assert.equal(readFileSync(join(dir, '.bento.yaml'), 'utf8'), 'artifacts_language: Portuguese (pt-BR)\n');
+});
+
 test('install: noAgents não cria AGENTS.md', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
   install(dir, { noAgents: true });
@@ -71,8 +82,8 @@ test('install: avisa quando flash e seção existentes não citam o self-review'
   const mock = t.mock.method(console, 'error', () => {});
   install(dir, {});
   const calls = mock.mock.calls.map((c) => c.arguments[0]);
-  assert.ok(calls.some((m) => m.includes('flash.md não cita o gate')), calls.join('\n'));
-  assert.ok(calls.some((m) => m.includes('seção ## Bento existente não cita o self-review')), calls.join('\n'));
+  assert.ok(calls.some((m) => m.includes('flash.md does not mention the self-review gate')), calls.join('\n'));
+  assert.ok(calls.some((m) => m.includes('existing ## Bento section does not mention self-review')), calls.join('\n'));
 });
 
 test('install: shim importa de ../.bento/lib/validate.mjs', () => {
@@ -113,6 +124,7 @@ test('uninstall: remove tudo do install e preserva AGENTS.md', () => {
   assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'small-prs')));
   assert.ok(!existsSync(join(dir, 'scripts', 'pr-split-verify.mjs')));
   assert.ok(!existsSync(join(dir, '.pr-limits.yaml')));
+  assert.ok(!existsSync(join(dir, '.bento.yaml')));
   const agents = readFileSync(join(dir, 'AGENTS.md'), 'utf8');
   assert.ok(!agents.includes('## Bento'));
   assert.ok(agents.includes('# Meu Projeto'));
@@ -205,7 +217,7 @@ test('install: preserva skill vendada divergente e avisa', (t) => {
   const mock = t.mock.method(console, 'error', () => {});
   install(dir, {});
   assert.equal(readFileSync(join(dir, '.opencode', 'skills', 'writing-plans', 'SKILL.md'), 'utf8'), '# meu\n');
-  assert.ok(mock.mock.calls.some((c) => c.arguments[0].includes('conteúdo diferente')));
+  assert.ok(mock.mock.calls.some((c) => c.arguments[0].includes('different content')));
 });
 
 test('install: noSuperpowers não venda skills nem cria o agent superpowers', () => {
@@ -267,7 +279,7 @@ test('uninstall: remove skills vendadas idênticas e preserva divergentes', (t) 
   assert.ok(removed.includes('.opencode/skills/brainstorming'));
   assert.ok(existsSync(join(dir, '.opencode', 'skills', 'writing-plans')));
   assert.ok(!removed.includes('.opencode/skills/writing-plans'));
-  assert.ok(mock.mock.calls.some((c) => c.arguments[0].includes('modificada')));
+  assert.ok(mock.mock.calls.some((c) => c.arguments[0].includes('was modified')));
 });
 
 test('uninstall: remove agents com marcador e preserva agent do usuário', () => {
@@ -291,4 +303,52 @@ test('install: atualiza venda nossa desatualizada e uninstall remove depois', ()
   const { removed } = uninstall(dir);
   assert.ok(removed.includes('.opencode/skills/brainstorming'));
   assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'brainstorming')));
+});
+
+test('install: shim tem check-push para o hook stack-aware', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
+  install(dir, {});
+  const shim = readFileSync(join(dir, 'scripts', 'pr-split-verify.mjs'), 'utf8');
+  assert.ok(shim.includes('check-push'));
+  assert.ok(shim.includes('../.bento/lib/validate.mjs'));
+});
+
+test('install: copia a skill i-have-adhd e o instructions', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
+  install(dir, {});
+  const vendada = readFileSync(new URL('../skills/i-have-adhd/SKILL.md', import.meta.url), 'utf8');
+  const copiada = readFileSync(join(dir, '.opencode', 'skills', 'i-have-adhd', 'SKILL.md'), 'utf8');
+  assert.equal(copiada, vendada);
+  const src = readFileSync(new URL('../templates/instructions/i-have-adhd.md', import.meta.url), 'utf8');
+  const instructions = readFileSync(join(dir, '.opencode', 'instructions', 'i-have-adhd.md'), 'utf8');
+  assert.equal(instructions, src);
+});
+
+test('install: noOutputStyle pula a skill e o instructions', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
+  install(dir, { noOutputStyle: true });
+  assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'i-have-adhd')));
+  assert.ok(!existsSync(join(dir, '.opencode', 'instructions', 'i-have-adhd.md')));
+});
+
+test('install: update sobrescreve skill e instructions editados', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-install-'));
+  install(dir, {});
+  writeFileSync(join(dir, '.opencode', 'skills', 'i-have-adhd', 'SKILL.md'), '# meu\n');
+  writeFileSync(join(dir, '.opencode', 'instructions', 'i-have-adhd.md'), '# meu\n');
+  install(dir, {});
+  const vendada = readFileSync(new URL('../skills/i-have-adhd/SKILL.md', import.meta.url), 'utf8');
+  assert.equal(readFileSync(join(dir, '.opencode', 'skills', 'i-have-adhd', 'SKILL.md'), 'utf8'), vendada);
+  const src = readFileSync(new URL('../templates/instructions/i-have-adhd.md', import.meta.url), 'utf8');
+  assert.equal(readFileSync(join(dir, '.opencode', 'instructions', 'i-have-adhd.md'), 'utf8'), src);
+});
+
+test('uninstall: remove a skill i-have-adhd e o instructions', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'bento-uninstall-'));
+  install(dir, {});
+  const { removed } = uninstall(dir);
+  assert.ok(!existsSync(join(dir, '.opencode', 'skills', 'i-have-adhd')));
+  assert.ok(!existsSync(join(dir, '.opencode', 'instructions', 'i-have-adhd.md')));
+  assert.ok(removed.includes('.opencode/skills/i-have-adhd'));
+  assert.ok(removed.includes('.opencode/instructions/i-have-adhd.md'));
 });

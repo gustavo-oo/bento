@@ -1,50 +1,55 @@
-# AGENTS.md — bento
+# AGENTS.md: bento
 
-CLI que instala/atualiza/remove, num projeto consumidor, o fluxo opencode pessoal: skill `small-prs` (limites de PR + split), skill `self-review` (gate de review interno com 2 agentes), plugin ponytail, 14 skills vendadas do superpowers com agents escopados (`flash`, `superpowers`, `explorer`, `verify`, `reviewer`, `browser`), MCP servers (codegraph, agent-browser), skill agent-browser/taste-skill e hook pre-push.
+CLI that installs/updates/removes, in a consumer project, the personal opencode workflow: the `small-prs` skill (PR limits + sessions/live stack), the `self-review` skill (internal review gate with 2 agents), the ponytail plugin, 14 vendored superpowers skills with scoped agents (`flash`, `superpowers`, `orchestrator`, `implementer`, `explorer`, `verify`, `reviewer`, `browser`), MCP servers (codegraph, agent-browser), the agent-browser/taste-skill skills, the direct output style (`i-have-adhd` skill + always-on `instructions`), and a stack-aware pre-push hook.
 
 ## Commands
 
 ```bash
-npm test                            # todos os testes (node --test test/*.test.mjs)
-node --test test/validate.test.mjs  # um arquivo só
-node bin/bento.mjs check            # valida tamanho do diff main..HEAD
+npm test                            # all tests (node --test test/*.test.mjs)
+node --test test/validate.test.mjs  # a single file
+node bin/bento.mjs check            # validates diff size main..HEAD
 ```
 
-CI: `.github/workflows/ci.yml` roda `npm test` no Node 24 em PRs e push na `main` (GitHub Actions).
+CI: `.github/workflows/ci.yml` runs `npm test` on Node 24 for PRs and pushes to `main` (GitHub Actions).
 
 ## CLI (bin/bento.mjs)
 
-- `install` atua num projeto consumidor e exige `gh` (instala a extensão gh-stack) → exit 1 sem `gh`; `update` NÃO toca gh-stack.
-- `install`/`update` copiam `lib/`, `bin/`, `templates/` para `.bento/` (+ `.bento/VERSION`), vendam as 14 skills do superpowers, criam os agents escopados em `.opencode/agents/` e o `default_agent` (só se ausente e o `flash` em disco for do bento), removem o plugin superpowers de instalações antigas e criam as skills do bento (`.opencode/skills/small-prs`, `self-review`, `taste-skill` e, salvo flag, `agent-browser`), o shim `scripts/pr-split-verify.mjs`, `.pr-limits.yaml` (só se ausente) e a seção `## Bento (small-prs)` no AGENTS.md.
-- Flags de install/update: `--no-agents`, `--no-superpowers` (pula skills vendadas + agent superpowers; não mexe no plugin nem avança o snapshot `.bento/skills`), `--no-profile` (pula agents de perfil + `default_agent`), `--no-ponytail`, `--no-hooks`, `--no-codegraph`, `--no-agent-browser`.
-- Plugins e MCP vão para `opencode.json`/`opencode.jsonc`; só `install` instala os CLIs globais e roda `codegraph init` — `update` não instala CLIs nem re-indexa o codegraph.
-- `--no-hooks` com hook de install anterior ativo emite aviso no stderr (o `core.hooksPath` permanece).
-- `check [base]` usa merge-base (`base...HEAD`); `equivalence <base> <head> <camada…>` exige camadas em cadeia (cada uma descendente da anterior).
-- Exit codes: `0` ok, `1` violação/divergência, `2` uso inválido.
+- `install` targets a consumer project and requires `gh` (installs the gh-stack extension) → exit 1 without `gh`; `update` does NOT touch gh-stack.
+- `install`/`update` copy `lib/`, `bin/`, `templates/` into `.bento/` (+ `.bento/VERSION`), vendor the 14 superpowers skills, create the scoped agents (`flash`, `superpowers`, `orchestrator`, `implementer`, `explorer`, `verify`, `reviewer`, `browser`) in `.opencode/agents/` and the `default_agent` (only if absent and the on-disk `flash` is from bento), remove the superpowers plugin from older installs, and create bento's skills (`.opencode/skills/small-prs`, `self-review`, `taste-skill`, and, unless flagged, `agent-browser`), the output style (`.opencode/skills/i-have-adhd`, `.opencode/instructions/i-have-adhd.md`, and the `instructions` key in `opencode.json`/`.jsonc`; skip with `--no-output-style`), the `scripts/pr-split-verify.mjs` shim, `.pr-limits.yaml` (only if absent), `.bento.yaml` (only if absent), and the `## Bento (small-prs)` section in AGENTS.md.
+- install/update flags: `--no-agents`, `--no-superpowers` (skips vendored skills + the superpowers agent; does not touch the plugin or advance the `.bento/skills` snapshot), `--no-profile` (skips profile agents + `default_agent`), `--no-ponytail`, `--no-hooks`, `--no-codegraph`, `--no-agent-browser`, `--no-output-style`.
+- Plugins and MCP go to `opencode.json`/`opencode.jsonc`; only `install` installs the global CLIs and runs `codegraph init`; `update` does not install CLIs or re-index codegraph.
+- `--no-hooks` with a previous install's hook active prints a warning to stderr (the `core.hooksPath` stays).
+- `check [base]` uses merge-base (`base...HEAD`); `equivalence <base> <head> <layer…>` requires layers in a chain (each one a descendant of the previous); `check-push` validates a push's refs (base by ancestry among them).
+- Exit codes: `0` ok, `1` violation/divergence, `2` invalid usage.
 
-## Arquitetura
+## Architecture
 
-- `lib/config.mjs` — parser de `.pr-limits.yaml` é regex puro (zero dep de YAML): suporta só `max_lines`, `max_files` e entradas `- glob:` + `max_lines:` indentado. Não adicione sintaxe nova sem atualizar parser + testes.
-- `lib/diff.mjs` — numstat via `git diff` (`execFileSync` com cwd parametrizável; testes usam repo fake).
-- `lib/opencode-config.mjs` — edita `opencode.json` E `opencode.jsonc` (roteia por extensão) preservando comentários; vírgulas/comentários têm testes dedicados; também gerencia a chave escalar `default_agent` (set condicional/remoção).
-- `lib/mcp-config.mjs` — mesma edição por texto para o bloco `mcp`, com o mesmo cuidado de comentários (remoção no jsonc é por índices; tem testes dedicados).
-- `lib/tools.mjs` — instala/remove CLIs globais (`@colbymchenry/codegraph`, `agent-browser`); falhas geram aviso, não erro.
-- `lib/validate.mjs` — `evaluate`/`runCheck`/`runEquivalence`; `lib/install.mjs` — install/uninstall + `packageRoot()`/`version()`.
-- `lib/hooks.mjs` — `setupPrePushHook`/`removePrePushHook`: config `core.hooksPath` → `.bento/hooks` (pula com aviso se já houver hooksPath de outro lugar ou hooks manuais no diretório comum de hooks, o que cobre linked worktrees); `templates/hooks/pre-push` é a fonte do hook instalado e valida os refs do stdin (cada branch empurrado), com fallback para o checkout atual quando rodado no terminal.
-- `lib/vendored-skills.mjs` — `VENDORED_SKILLS` (14 do superpowers), cópia se ausente/idêntica, atualização substitui a árvore (remove arquivos que saíram da origem), preserva divergente (`sameTree`), remoção só se idêntica ao `.bento/skills/`.
-- `lib/agents.mjs` — instala `templates/agents/*.md` só se ausente (marcador `/^#\s*bento:\s*agent\b/m` dentro do frontmatter), remove só o que tem o marcador.
-- Este repositório É a fonte do que é instalado em consumidores: mudanças em `lib/`, `templates/` ou `skills/` propagam via `bento install`/`update`.
-- `skills/<nome>/` (14) — venda do superpowers v6.1.1 (commit `d884ae04edebef577e82ff7c4e143debd0bbec99`, MIT). Atualização manual: re-copiar do commit novo, reaplicar os patches locais e atualizar este bullet. Patches locais: `brainstorming/scripts/stop-server.sh` (canonicaliza o diretório antes do `rm -rf`), `systematic-debugging/find-polluter.sh` (respeita `TEST_CMD`) e `writing-skills/render-graphs.cjs` (renomeado de `.js` para rodar em contexto ESM; a skill referencia o novo nome).
-- `skills/taste-skill/SKILL.md` — venda do upstream https://github.com/Leonxlnx/taste-skill (commit `ccbc15639c97057cbfcf32ecebc38ef716e4bb37`, 24/08/2026, MIT). Atualização manual: re-copiar do commit novo e atualizar este bullet.
-- `skills/agent-browser/SKILL.md` — stub que aponta para `agent-browser skills get core`; o conteúdo real vem do CLI instalado.
-- `skills/self-review/SKILL.md` — gate de review interno (skill bento, não vendada): 2 revisores com mandatos complementares (`verify` regressão + `reviewer` adversarial), repro obrigatória para High/Medium, validação cruzada, ledger local em `.superpowers/self-review/`, teto de 3 rodadas de re-review.
-- `templates/agents/` — fonte dos agents `flash`, `superpowers` (bootstrap adaptado, MIT), `explorer`, `verify`, `reviewer` e `browser`.
+- `lib/config.mjs`: the `.pr-limits.yaml` parser is pure regex (zero YAML deps): it supports only `max_lines`, `max_files`, and indented `- glob:` + `max_lines:` entries. Do not add new syntax without updating the parser + tests.
+- `lib/diff.mjs`: numstat via `git diff` (`execFileSync` with a configurable cwd; tests use a fake repo).
+- `lib/opencode-config.mjs`: edits `opencode.json` AND `opencode.jsonc` (routed by extension) preserving comments; commas/comments have dedicated tests; also manages the scalar `default_agent` key (conditional set/removal) and the `instructions` key entry (`addInstructionsEntry`/`removeInstructionsEntry`).
+- `lib/mcp-config.mjs`: same text-based editing for the `mcp` block, with the same comment care (jsonc removal is by index; dedicated tests).
+- `lib/stack.mjs`: resolves each push branch's base by ancestry among the pushed refs (base = nearest ancestor; no stack → `main`); it backs `check-push` without parsing `.git/gh-stack` or depending on `gh`.
+- `lib/tools.mjs`: installs/removes global CLIs (`@colbymchenry/codegraph`, `agent-browser`); failures warn instead of erroring.
+- `lib/validate.mjs`: `evaluate`/`runCheck`/`runCheckPush`/`runEquivalence`; `lib/install.mjs`: install/uninstall + `packageRoot()`/`version()`.
+- `lib/hooks.mjs`: `setupPrePushHook`/`removePrePushHook`: configures `core.hooksPath` → `.bento/hooks` (skips with a warning if another hooksPath exists or if there are manual hooks in the common hooks dir, which covers linked worktrees); `templates/hooks/pre-push` is the source of the installed hook; it validates stdin refs in one `check-push` call (each branch against its stack base), with a fallback to the current checkout when run from a terminal.
+- `lib/vendored-skills.mjs`: `VENDORED_SKILLS` (14 from superpowers), copies when absent/identical, updates by replacing the tree (removes files that left the origin), preserves diverged copies (`sameTree`), removes only if identical to `.bento/skills/`.
+- `lib/agents.mjs`: installs `templates/agents/*.md` only if absent (marker `/^#\s*bento:\s*agent\b/m` inside the frontmatter), removes only files with the marker.
+- This repo IS the source of everything installed into consumers: changes to `lib/`, `templates/`, or `skills/` reach them via `bento install`/`update`.
+- `skills/<name>/` (14): vendored from superpowers v6.1.1 (commit `d884ae04edebef577e82ff7c4e143debd0bbec99`, MIT). Manual update: re-copy from the new commit, re-apply the local patches, and update this bullet. Local patches: `brainstorming/scripts/stop-server.sh` (canonicalizes the directory before `rm -rf`), `systematic-debugging/find-polluter.sh` (honors `TEST_CMD`), and `writing-skills/render-graphs.cjs` (renamed from `.js` to run under ESM; the skill references the new name).
+- `skills/taste-skill/SKILL.md`: vendored from https://github.com/Leonxlnx/taste-skill (commit `ccbc15639c97057cbfcf32ecebc38ef716e4bb37`, 2026-08-24, MIT). Manual update: re-copy from the new commit and update this bullet.
+- `skills/i-have-adhd/SKILL.md`: vendored from https://github.com/ayghri/i-have-adhd (commit `b15d0be58f55b33972ba3e39709e0e5208ef30cb`, 2026-09-16, MIT). Manual update: re-copy from the new commit and update this bullet. `templates/instructions/i-have-adhd.md`: always-on ruleset (upstream summary + a human-artifacts section) installed through the `instructions` key.
+- `skills/agent-browser/SKILL.md`: stub pointing at `agent-browser skills get core`; the real content comes from the installed CLI.
+- `skills/self-review/SKILL.md`: internal review gate (bento skill, not vendored): 2 reviewers with complementary mandates (`verify` regression + `reviewer` adversarial), mandatory repro for High/Medium, cross-validation, local ledger in `.superpowers/self-review/`, cap of 3 re-review rounds.
+- `templates/agents/`: source of the `flash`, `superpowers` (adapted bootstrap, MIT), `orchestrator`, `implementer`, `explorer`, `verify`, `reviewer`, and `browser` agents.
+- `templates/bento.yaml`: artifact-language config installed as `.bento.yaml` in consumers (only if absent); the installed `## Bento` section points agents to it for PR bodies, commits, docs, specs, and plans.
+- `README.md`: human entry point (English, banner in `assets/banner.svg`; what's in the box, install with an agent, agents, PR guardrails); `AGENT_INSTALL.md`: step-by-step playbook (English) that an agent follows to install into a consumer (prerequisites, flags, verification, and report), the target of the README install prompt.
 
-## Regras
+## Rules
 
-- Node puro (>= 18), ESM, zero deps runtime.
-- TDD obrigatório (node:test): teste antes da implementação.
-- Testes não podem depender de rede nem de `gh` instalado.
-- Mensagens de CLI, docs e commits em PT-BR; conventional commits (feat:, fix:, docs:, refactor:, test:).
-- Planos/specs em `docs/superpowers/plans/` e `docs/superpowers/specs/` com nome `YYYY-MM-DD-<assunto>.md`.
-- `uninstall` só remove o que reconhece como seu (shim contendo `.bento/lib/validate.mjs`; seção `## Bento (small-prs)`); arquivos do usuário com nomes iguais são preservados.
+- Pure Node (>= 18), ESM, zero runtime deps.
+- TDD mandatory (node:test): test before implementation.
+- Tests must not depend on the network or an installed `gh`.
+- Everything in English: CLI messages, docs, and commit messages; conventional commits (feat:, fix:, docs:, refactor:, test:). Historical plans/specs written before 2026-09-17 stay in PT-BR.
+- Changed a flag or behavior of `install`/`update`/`uninstall`? Update `README.md` and `AGENT_INSTALL.md` together.
+- Plans/specs in `docs/superpowers/plans/` and `docs/superpowers/specs/` named `YYYY-MM-DD-<subject>.md`; session plans use `YYYY-MM-DD-<subject>-s<N>.md`.
+- `uninstall` only removes what it recognizes as its own (shim containing `.bento/lib/validate.mjs`; `## Bento (small-prs)` section); user files with the same names are preserved.

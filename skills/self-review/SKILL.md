@@ -1,114 +1,114 @@
 ---
 name: self-review
-description: Gate de review interno antes de finalizar branch/PR (ou sob demanda) — dois revisores com mandatos complementares (verify = regressão; reviewer = adversarial), repro obrigatória para High/Medium, validação cruzada, correções locais automáticas, decisões guiadas para Low/design e ledger local até o estado final.
+description: Internal review gate before finishing a branch/PR (or on demand) - two reviewers with complementary mandates (verify = regression; reviewer = adversarial), mandatory repro for High/Medium, cross-validation, automatic local fixes, guided decisions for Low/design, and a local ledger until the final state.
 ---
 
-# self-review — review interno com 2 agentes e correção por severidade
+# self-review: internal review with 2 agents and severity-based correction
 
-Use antes de `finishing-a-development-branch`/submit, ou quando o dev pedir "revisa o que fiz". O objetivo é pegar o que reviews internos estáticos deixam passar: falso negativo de bordas, auto-confirmação e achados rebaixados a "minor/residual".
+Use before `finishing-a-development-branch`/submit, or when the dev asks "review what I did". The goal is to catch what static internal reviews miss: false negatives at the edges, self-confirmation, and findings downgraded to "minor/residual".
 
-## Atores
+## Actors
 
-- **Agente primário (você)**: define a unidade, despacha, escreve o ledger, aplica fixes e decide com o dev.
-- **R1 `@verify`**: mandato de regressão/correção — o diff cumpre o contrato e não quebra o existente.
-- **R2 `@reviewer`**: mandato adversarial — bordas, inputs hostis, plataforma, riscos cross-cutting.
+- **Primary agent (you)**: defines the unit, dispatches, writes the ledger, applies fixes, and decides with the dev.
+- **R1 `@verify`**: regression/correction mandate: the diff fulfills the contract and does not break the existing.
+- **R2 `@reviewer`**: adversarial mandate: edges, hostile inputs, platform, cross-cutting risks.
 
-## 0. Unidade e preparação
+## 0. Unit and preparation
 
-1. Defina a unidade: task, camada da stack ou branch (default sob demanda: branch atual). Registre `base` e `head` com `git rev-parse`.
-2. Cheque o tamanho: `node scripts/pr-split-verify.mjs check <base> <head>` (ou `bento check <base> <head>`). Se violar `.pr-limits.yaml`, **pare**: a unidade precisa de split com a skill `small-prs` antes do review. Review de diff gigante é teatro.
-3. Crie o diretório da unidade, fora do git:
+1. Define the unit: task, stack layer, or branch (default on demand: current branch). Record `base` and `head` with `git rev-parse`.
+2. Check the size: `node scripts/pr-split-verify.mjs check <base> <head>` (or `bento check <base> <head>`). If it violates `.pr-limits.yaml`, **stop**: the unit needs a split with the `small-prs` skill before review. Reviewing a giant diff is theater.
+3. Create the unit directory, outside git:
 
 ```bash
-slug=<slug-da-unidade>   # ex.: nome da branch ou da camada, com '/' -> '-'
+slug=<unit-slug>   # e.g.: branch or layer name, with '/' -> '-'
 dir=".superpowers/self-review/$slug"
 mkdir -p "$dir"
 printf '*\n' > "$dir/.gitignore"
 ```
 
-4. Congele o pacote (única visão dos revisores):
+4. Freeze the package (the reviewers' single view):
 
 ```bash
 base_sha=$(git merge-base <base> <head>)
 head_sha=$(git rev-parse <head>)
 {
-  echo "# Unidade: $slug"; echo "# Base: $base_sha"; echo "# Head: $head_sha"; echo
+  echo "# Unit: $slug"; echo "# Base: $base_sha"; echo "# Head: $head_sha"; echo
   echo "## Commits"; git log --oneline "$base_sha..$head_sha"; echo
   echo "## Stat"; git diff --stat "$base_sha...$head_sha"; echo
   echo "## Diff"; git diff "$base_sha...$head_sha"
 } > "$dir/package-$(git rev-parse --short "$base_sha")-$(git rev-parse --short "$head_sha").diff"
 ```
 
-O pacote NÃO entra no seu contexto: passe apenas o caminho aos revisores.
+The package does NOT enter your context: pass only the path to the reviewers.
 
-5. Abra `$dir/ledger.md` com o cabeçalho (unidade, base/head, contrato: spec/brief/descrição do PR).
+5. Open `$dir/ledger.md` with the header (unit, base/head, contract: spec/brief/PR description).
 
-## 1. Rodada 1 — despache R1 e R2 em paralelo
+## 1. Round 1: dispatch R1 and R2 in parallel
 
-Na mesma mensagem, um `task` para `verify` (R1) e um para `reviewer` (R2), cada um com este contrato (adapte o mandato):
+In the same message, one `task` for `verify` (R1) and one for `reviewer` (R2), each with this contract (adapt the mandate):
 
-> Leia o pacote `<caminho do package>` — é sua única visão do que mudou; o contexto dele basta. Se precisar de algo fora dele, nomeie o risco antes de olhar e diga o que checou no relatório. Contrato: <spec/brief/descrição>.
-> Mandato: <R1: regressão/correção — o diff cumpre o contrato e nada quebra o existente> | <R2: adversarial — bordas, inputs hostis, ESM/CJS, plataforma, symlink/worktree, snapshot/cache, legado, interação entre arquivos>.
-> Limites do projeto: `.pr-limits.yaml`. Read-only: não altere working tree, index, HEAD ou branches; pode rodar no máximo um teste focado.
-> Para cada achado: `arquivo:linha`, severidade (High/Medium/Low), o que está errado, impacto e **repro** (trecho de teste focado que falha por comportamento) quando High/Medium. Sem repro, classifique Low.
-> Severidade conforme a seção Severidade desta skill (bandas + antirrebaixamento).
-> Formato final: veredito (aprovar | needs fixes), achados e confiança.
+> Read the package `<package path>`: it is your single view of what changed; its context is enough. If you need something outside it, name the risk before looking and say what you checked in the report. Contract: <spec/brief/description>.
+> Mandate: <R1: regression/correction: the diff fulfills the contract and nothing breaks the existing> | <R2: adversarial: edges, hostile inputs, ESM/CJS, platform, symlink/worktree, snapshot/cache, legacy, interaction between files>.
+> Project limits: `.pr-limits.yaml`. Read-only: do not change the working tree, index, HEAD, or branches; you may run at most one focused test.
+> For each finding: `file:line`, severity (High/Medium/Low), what is wrong, impact, and **repro** (focused test snippet that fails on behavior) when High/Medium. Without repro, classify Low.
+> Severity per the Severity section of this skill (bands + anti-downgrade).
+> Final format: verdict (approve | needs fixes), findings, and confidence.
 
-Os revisores são read-only: a repro chega como trecho no relatório; transcreva verbatim para `$dir/repro-<id>.test.mjs`, confirme o RED e só então despache a validação cruzada.
+The reviewers are read-only: the repro arrives as a snippet in the report; transcribe it verbatim to `$dir/repro-<id>.test.mjs`, confirm the RED, and only then dispatch cross-validation.
 
-R1 e R2 não veem o relatório um do outro. Se `verify` e `reviewer` estiverem com `model` diferentes, a complementaridade é maior.
+R1 and R2 do not see each other's report. If `verify` and `reviewer` use different `model`s, complementarity is greater.
 
-## 2. Merge e validação cruzada
+## 2. Merge and cross-validation
 
-- Deduplique por `arquivo:linha` + tipo; achado proposto pelos dois já está confirmado.
-- High/Medium proposto por um revisor: despache **o outro** para validar executando a repro já materializada (teste focado, nunca a suíte inteira) e emitir `confirmed` ou `disputed`.
-- Divergência de existência/severidade: rodada focada (os dois sobre a mesma repro). Persistindo, pergunte ao dev mostrando as duas evidências.
+- Deduplicate by `file:line` + type; a finding proposed by both is already confirmed.
+- High/Medium proposed by one reviewer: dispatch **the other** to validate by running the already-materialized repro (focused test, never the whole suite) and emit `confirmed` or `disputed`.
+- Divergence on existence/severity: focused round (both on the same repro). If it persists, ask the dev showing both pieces of evidence.
 
-## 3. Ledger (fonte da verdade)
+## 3. Ledger (source of truth)
 
-`$dir/ledger.md`, append-only por rodada:
+`$dir/ledger.md`, append-only per round:
 
 ```markdown
-# Self-review — <unidade>
-base: <sha> · head: <sha> · contrato: <ref>
-## Rodada 1 (R1=verify <modelo>, R2=reviewer <modelo>)
-| id | arquivo:linha | severidade | origem | evidência (repro) | validação | decisão | status | commit |
+# Self-review: <unit>
+base: <sha> · head: <sha> · contract: <ref>
+## Round 1 (R1=verify <model>, R2=reviewer <model>)
+| id | file:line | severity | origin | evidence (repro) | validation | decision | status | commit |
 |----|---------------|-----------|--------|-------------------|-----------|---------|--------|--------|
-| SR-1 | lib/x.mjs:12 | High | R2 | `node --test .../repro-SR-1.test.mjs` (falha) | R1 confirmed | auto (local) | fixed | abc1234 |
+| SR-1 | lib/x.mjs:12 | High | R2 | `node --test .../repro-SR-1.test.mjs` (fails) | R1 confirmed | auto (local) | fixed | abc1234 |
 ```
 
-Status: `open` → `fixed` / `waived` / `discarded`. Nada é apagado; rebaixamento ou descarte registra quem validou e por quê.
+Status: `open` -> `fixed` / `waived` / `discarded`. Nothing is deleted; a downgrade or discard records who validated it and why.
 
-## Severidade
+## Severity
 
-- **High/Critical**: bug real (corrupção, perda de dados, segurança, quebra funcional) ou regressão confirmada.
-- **Medium/Important**: comportamento incorreto/frágil em cenário plausível, erro de contrato ou risco cross-cutting.
-- **Low/Minor**: estilo, polimento, docs, otimização sem impacto comprovado.
+- **High/Critical**: real bug (corruption, data loss, security, functional breakage) or confirmed regression.
+- **Medium/Important**: incorrect/fragile behavior in a plausible scenario, contract error, or cross-cutting risk.
+- **Low/Minor**: style, polish, docs, optimization with no proven impact.
 
-## 4. Decisão
+## 4. Decision
 
-- **High/Medium confirmado e local/inequívoco** (não muda contrato público, schema/migração, dependências, nem arquivos fora do diff) → **auto-fix**.
-- **High/Medium que mude design/contrato/escopo** → `question` ao dev com 2-3 opções de correção.
-- **Low** → UMA `question` em lote (múltipla escolha por item): corrigir agora / adiar (justificar) / descartar (falso positivo validado).
-- Proibido rebaixar por "pré-existente" (se o diff tocou, é do PR), por "estava no plano" ou sem evidência + validação.
+- **High/Medium confirmed and local/unambiguous** (does not change public contract, schema/migration, dependencies, or files outside the diff) -> **auto-fix**.
+- **High/Medium that changes design/contract/scope** -> `question` to the dev with 2-3 fix options.
+- **Low** -> ONE batched `question` (multiple choice per item): fix now / defer (justify) / discard (validated false positive).
+- Downgrading is forbidden because of "pre-existing" (if the diff touched it, it belongs to the PR), because "it was in the plan", or without evidence + validation.
 
-## 5. Fix e re-review
+## 5. Fix and re-review
 
-- Fix com TDD: mova a repro para o diretório de testes do projeto, veja falhar (RED), corrija o mínimo (GREEN) e rode a suíte completa.
-- Re-review focado do par: itens corrigidos + regressão, no mesmo formato da rodada 1.
-- A repro de um achado descartado é removida do diretório da unidade (o ledger mantém o registro).
-- Teto de **3 rodadas** de re-review; ao exceder, pare e apresente o resumo com evidências ao dev.
+- Fix with TDD: move the repro into the project test directory, watch it fail (RED), fix the minimum (GREEN), and run the full suite.
+- Focused re-review of the pair: fixed items + regression, in the same format as round 1.
+- The repro of a discarded finding is removed from the unit directory (the ledger keeps the record).
+- Cap of **3 re-review rounds**; when exceeded, stop and present the summary with evidence to the dev.
 
 ## 6. Gate
 
-- Condição de saída: nenhum item `open` e nenhum `disputed` sem decisão do dev.
-- Resumo final ao dev: contagem por severidade, o que foi automático, o que o dev decidiu e o que foi descartado com validação.
-- Só então siga para `finishing-a-development-branch`/submit.
+- Exit condition: no `open` item and no `disputed` without a dev decision.
+- Final summary to the dev: count by severity, what was automatic, what the dev decided, and what was discarded with validation.
+- Only then proceed to `finishing-a-development-branch`/submit.
 
-## Regras
+## Rules
 
-- Nunca poste no GitHub por conta própria; o ledger é local.
-- Nunca edite skills vendadas do superpowers para "consertar" um achado.
-- Se `verify`/`reviewer` não existirem como subagents (ex.: install com `--no-profile`), use subagentes genéricos com os mesmos mandatos e read-only no prompt.
-- Nunca `git add -A`: os scratch em `.superpowers/self-review/` ficam fora do commit.
-- Este gate roda quando acionado (fim de trabalho ou pedido do dev); não há hook automático.
+- Never post to GitHub on your own; the ledger is local.
+- Never edit vendored superpowers skills to "fix" a finding.
+- If `verify`/`reviewer` do not exist as subagents (e.g. install with `--no-profile`), use generic subagents with the same mandates and read-only in the prompt.
+- Never `git add -A`: scratch files in `.superpowers/self-review/` stay out of the commit.
+- This gate runs when triggered (end of work or dev request); there is no automatic hook.

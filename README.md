@@ -1,86 +1,121 @@
-# bento
+<p align="center">
+  <img src="assets/banner.svg" alt="bentō (弁当): the opencode workflow, in a box" width="100%">
+</p>
 
-CLI do fluxo opencode pessoal: instala e mantém, num projeto consumidor, a skill `small-prs` (limites de tamanho de PR + split em camadas), o plugin ponytail, as skills vendadas do superpowers, o gate de review interno `self-review` e agents escopados, os MCP servers codegraph e agent-browser, as skills agent-browser e taste-skill e um hook pre-push.
+<p align="center">
+  <b>Skills, scoped agents, MCP servers, and guardrails: your whole opencode workflow in one box.</b>
+</p>
 
-## Instalação (no projeto consumidor)
+<p align="center">
+  <img alt="Node >= 18" src="https://img.shields.io/badge/node-%3E%3D18-2f3338?logo=nodedotjs&amp;logoColor=white&amp;style=flat-square">
+  <img alt="Zero runtime dependencies" src="https://img.shields.io/badge/runtime%20deps-0-2f3338?style=flat-square">
+  <img alt="Tests run with node:test" src="https://img.shields.io/badge/tests-node%3Atest-2f3338?style=flat-square">
+  <img alt="PR limit: 400 lines, 10 files" src="https://img.shields.io/badge/PR%20limit-400%20lines%20%C2%B7%2010%20files-2f3338?style=flat-square">
+</p>
 
-```bash
-node bin/bento.mjs install        # instala tudo; exige o GitHub CLI (gh)
-node bin/bento.mjs update         # re-instala mantendo .pr-limits.yaml local
+bento installs and maintains, inside your project, a personal opencode workflow: 14 vendored superpowers skills, scoped agents (primary and subagents), the `self-review` gate, the `codegraph` and `agent-browser` MCP servers, the ponytail plugin, a direct output style, and one opinionated guardrail that stops diffs from outgrowing their PR (the `small-prs` skill plus a stack-aware pre-push hook).
+
+It's a Node CLI with zero runtime dependencies, and it only acts where you tell it to: no telemetry, no external service; everything it writes, it removes again on `uninstall`.
+
+## 🚀 Install
+
+### With an agent (recommended)
+
+Paste this into your coding agent (opencode, Claude Code, Codex, Cursor…):
+
+```text
+Install bento in this project: clone https://github.com/gustavo-oo/bento into a temp directory, read AGENT_INSTALL.md, and follow its instructions to the letter.
 ```
 
-> Após publicar no npm, use `npx bento …` (o pacote ainda não está publicado).
+The agent checks the prerequisites, shows exactly what it will create (and what it will install outside your project), runs the install, and verifies the result.
 
-`install` exige `gh` (instala a extensão gh-stack) e sai com 1 sem ele. `update` não toca em gh-stack, não instala CLIs globais e não re-indexa o codegraph. Depois de instalado, `node .bento/bin/bento.mjs update` também funciona.
+### Manually
 
-> `install`/`update` não alteram agents nem a seção `## Bento` já existentes: se o seu install é anterior ao gate `self-review`, remova `.opencode/agents/flash.md` e o trecho antigo do `AGENTS.md` e rode `update` de novo (o CLI avisa quando falta).
-
-Instala:
-- `.opencode/skills/small-prs/SKILL.md` — skill opencode (prevenção/validação/correção)
-- `.opencode/skills/self-review/SKILL.md` — gate de review interno: 2 revisores (regressão + adversarial), repro para High/Medium e ledger local
-- `.opencode/skills/taste-skill/SKILL.md` — skill opencode de design anti-slop (design-taste-frontend)
-- `.opencode/skills/agent-browser/SKILL.md` — stub da skill agent-browser (pule com `--no-agent-browser`)
-- `scripts/pr-split-verify.mjs` — shim para `check` e `equivalence`
-- `.bento/` — lib + bin + skills + templates + `VERSION` (atualizáveis com `bento update`)
-- `.pr-limits.yaml` — config (criada só se ausente; nunca sobrescrita)
-- `.bento/hooks/pre-push` + `core.hooksPath` — hook que bloqueia push com diff acima dos limites (pule com `--no-hooks`; config local por clone; `git push --no-verify` burla — conveniência, não segurança)
-- `.opencode/skills/` — 14 skills do superpowers vendadas (v6.1.1, MIT; pule com `--no-superpowers`)
-- `.opencode/agents/` — agents `flash` (padrão), `superpowers`, `explorer`, `verify`, `reviewer`, `browser` (pule com `--no-profile`; o agent `superpowers` segue `--no-superpowers`; `explorer`/`browser` seguem `--no-codegraph`/`--no-agent-browser`)
-- `default_agent: flash` no `opencode.json`/`.jsonc` — só se ausente e o `flash` instalado for do bento (pule com `--no-profile`)
-- `ponytail` — plugin adicionado ao `opencode.json`/`.jsonc` (pule com `--no-ponytail`)
-- `codegraph` — CLI global `@colbymchenry/codegraph`, MCP server (`codegraph serve --mcp`) e `codegraph init` (pule com `--no-codegraph`)
-- `agent-browser` — CLI global + Chrome, MCP server (`agent-browser mcp`) e skill (pule com `--no-agent-browser`)
-- seção `## Bento (small-prs)` no `AGENTS.md` (pule com `--no-agents`)
-- extensão `gh-stack` do GitHub CLI
-
-## Desinstalação
+Requirements: Node >= 18 and an authenticated GitHub CLI (`gh`); `install` uses it to add the `gh-stack` extension.
 
 ```bash
-node bin/bento.mjs uninstall    # remove tudo (idempotente)
+# 1. get the CLI
+git clone https://github.com/gustavo-oo/bento /tmp/bento-src
+
+# 2. from the root of your consumer project
+node /tmp/bento-src/bin/bento.mjs install   # installs everything
+node /tmp/bento-src/bin/bento.mjs update    # re-installs, keeping your .pr-limits.yaml
 ```
 
-> Após publicar no npm, use `npx bento uninstall`.
+> Not on npm yet; once it is, `npx bento install` will work too. After the first install, `node .bento/bin/bento.mjs update` is all you need.
 
-Remove:
-- `.bento/` — lib + bin + skills + templates
-- `.opencode/skills/small-prs/` — skill opencode
-- `.opencode/skills/taste-skill/` — skill opencode de design
-- `.opencode/skills/agent-browser/` — skill opencode
-- `.opencode/skills/self-review/` — skill do gate de review interno
-- `.opencode/skills/<skill vendada>/` — só se idêntica à cópia instalada (modificadas são preservadas)
-- `.opencode/agents/*.md` — só agents com o marcador do bento (os seus são preservados)
-- `default_agent` do `opencode.json`/`.jsonc` — só se for `flash` e o agent removido era do bento
-- `scripts/pr-split-verify.mjs` — shim (só se for do bento; arquivo do usuário com o mesmo nome é preservado)
-- `.pr-limits.yaml` — config
-- `core.hooksPath` apontando para `.bento/hooks` (só se for do bento)
-- entradas dos plugins (inclui a remoção do plugin superpowers de instalações antigas) no `opencode.json`/`.jsonc` (arquivo removido se ficar vazio)
-- entradas MCP (codegraph, agent-browser) no `opencode.json`/`.jsonc` (arquivo removido se ficar vazio)
-- `.codegraph/` — index do codegraph
-- CLIs globais `codegraph` e `agent-browser` (`npm uninstall -g`; aviso se falhar)
-- seção `## Bento (small-prs)` no `AGENTS.md` (arquivo removido se ficar vazio)
-- extensão `gh-stack` do GitHub CLI (aviso se `gh` indisponível; sem falha)
+## 🍱 What's in the box
 
-## Uso
+| Slice | What it does | Skip with |
+| --- | --- | --- |
+| superpowers skills | 14 vendored skills (brainstorming, plans, TDD, debugging, worktrees, review…), v6.1.1, MIT | `--no-superpowers` |
+| Scoped agents | `flash` (default, via `default_agent`), `superpowers`, `orchestrator`, `implementer`, `explorer`, `verify`, `reviewer`, `browser` | `--no-profile` |
+| `self-review` skill | Internal review gate: 2 reviewers (regression + adversarial), mandatory repro for High/Medium findings, local ledger | n/a |
+| `codegraph` MCP | Structural codebase search + global CLI + `.codegraph/` index | `--no-codegraph` |
+| `agent-browser` MCP | Browser automation + global CLI + skill | `--no-agent-browser` |
+| ponytail plugin | opencode plugin added to `opencode.json`/`.jsonc` | `--no-ponytail` |
+| `taste-skill` | Anti-slop design skill for landing pages, portfolios, and redesigns | n/a |
+| `i-have-adhd` output style | Skill + always-on `instructions`: direct answers, next action first | `--no-output-style` |
+| `small-prs` skill | Prevents, validates, and fixes oversized PRs; knows how to split them into layers | n/a |
+| pre-push hook | Stack-aware: checks every pushed branch against its stack base and aborts over the limit | `--no-hooks` |
+| `.pr-limits.yaml` | Your PR limits (created only if missing, never overwritten) | n/a |
+| `.bento.yaml` | Language for generated artifacts: PR bodies, commits, docs, specs (created only if missing) | n/a |
+| `scripts/pr-split-verify.mjs` shim | Shortcut for `check`, `check-push`, and `equivalence` at the project root | n/a |
+| `.bento/` | Pinned copy of the CLI (lib, bin, templates, skills) for local `update` | n/a |
+| `## Bento (small-prs)` section in `AGENTS.md` | The workflow rules your agent reads in every project | `--no-agents` |
+| `gh-stack` extension | Delivers layered PR stacks (`gh stack push/submit`) | install only |
+
+`update` is more conservative than `install`: it preserves your `.pr-limits.yaml` and `.bento.yaml`, leaves `gh-stack` alone, doesn't reinstall global CLIs, doesn't re-index codegraph, and never touches existing agents or your `## Bento` section.
+
+## 🤖 Agents
+
+| Agent | What for |
+| --- | --- |
+| `flash` | Primary and default: small steps, evidence-based verification, delegation |
+| `superpowers` | Primary for features: brainstorm → plan → subagent execution → review |
+| `orchestrator` | Primary: runs the session roadmap and dispatches subagents |
+| `implementer` | Level-2 worker subagent: implements, does not delegate |
+| `explorer` | Read-only subagent that explores the codebase with codegraph and returns a digest with `file:line` |
+| `verify` | Read-only subagent that verifies independently, reviews layer by layer, and pastes the output |
+| `reviewer` | Read-only adversarial subagent: hunts edge cases, hostile inputs, and cross-cutting risks |
+| `browser` | Browser automation subagent that returns evidence |
+
+Switch with Tab. The `.md` files in `.opencode/agents/` are yours: tweak model, temperature, and permissions freely; `update` won't overwrite them.
+
+## 📏 Guardrails: small PRs
+
+One opinionated piece of the box: diffs stay small enough to review. You get a skill that plans for it, a checker that blocks it, and a stack-aware hook that runs the check on every push.
+
+### The flow
+
+```mermaid
+flowchart LR
+  P[Prevention: 1 task = 1 PR slice] --> I[Implement with tests]
+  I --> C{check}
+  C -- within limits --> PR[Open PR]
+  C -- over the limit --> S[Split into layers + equivalence]
+  S --> PR
+```
+
+1. **Prevention**: while planning, every task becomes a PR slice (or a stack layer): tests travel with the code they cover, refactors stay out of features, migrations ride with the code they serve. Default limit: 400 lines and 10 files.
+2. **Validation**: before opening a PR, run `check`. Over the limit, the PR is blocked, no drama.
+3. **Correction**: with your approval, the diff is cut into coherent layers, the layers are proven to add up to the original (`equivalence`), and delivery happens as a chain via `gh-stack`.
+
+### Commands
 
 ```bash
-bento check [base]                                     # valida o diff (default: main..HEAD)
-bento equivalence <base> <head> <camada1> [camada2 …]  # prova que as camadas somam o diff original
-node scripts/pr-split-verify.mjs check                 # idem (via shim instalado)
+node .bento/bin/bento.mjs check [base]                       # validate the diff (default: main..HEAD)
+node .bento/bin/bento.mjs equivalence <base> <head> <layer1> [layer2 …]
+node scripts/pr-split-verify.mjs check                       # same check, via the installed shim
 ```
 
-O pre-push roda `check` (base `main`) automaticamente a cada `git push`, para cada branch empurrado (refs do stdin); acima do limite o push é abortado.
+Exit codes: `0` ok, `1` violation/divergence, `2` invalid usage. Tip: before `check`, refresh the refs (`git fetch origin <base> <head>`); stale refs become phantom diffs.
 
-Exit codes: `0` ok, `1` violação/divergência, `2` uso inválido.
+The pre-push hook validates each pushed branch against the base of its own stack, resolved by ancestry among the pushed refs (no stack: `main`). It's local config per clone (`core.hooksPath → .bento/hooks`), and `git push --no-verify` bypasses it: convenience, not security. If the repo already has manual hooks or a `core.hooksPath` owned by something else (husky/lefthook), bento warns and leaves it alone.
 
-## Fluxo small-prs
+### Limits
 
-1. **Prevenção** — ao planejar (superpowers:writing-plans), 1 task = 1 slice de PR (testes junto, refactor ≠ feature, ≤400 linhas/10 arquivos).
-2. **Validação** — antes de abrir PR, rode `check`; acima do limite o PR é bloqueado.
-3. **Correção** — com aprovação: split em camadas coerentes, equivalência verificada, entrega em cadeia via `gh stack push`/`gh stack submit` (alias `gs` disponível via `gh stack alias`, opcional).
-
-Os agents escopados organizam o uso: `flash` (padrão enxuto), `superpowers` (skills completas), `explorer`, `verify`, `reviewer` e `browser`. Troque com Tab; edite os `.md` em `.opencode/agents/` para ajustar modelo/temperatura.
-
-## Config `.pr-limits.yaml`
+`.pr-limits.yaml`:
 
 ```yaml
 max_lines: 400
@@ -90,12 +125,32 @@ overrides:
     max_lines: 200
 ```
 
-## Desenvolvimento
+`max_lines` and `max_files` apply to the whole diff; each `override` sums the files matching its glob into its own group with a separate limit. The parser intentionally supports only this syntax; it's pure regex, no YAML dependency.
+
+## 🔁 Update & uninstall
 
 ```bash
-npm test    # node --test test/*.test.mjs
+node .bento/bin/bento.mjs update      # update the CLI and the installed pieces
+node .bento/bin/bento.mjs uninstall   # remove everything bento added (idempotent)
 ```
 
-O CI (`.github/workflows/ci.yml`) roda `npm test` no Node 24 em pull requests e pushes na `main`.
+`uninstall` only removes what it recognizes as its own: vendored skills you modified are preserved, agents without the bento marker stay where they are, and `scripts/pr-split-verify.mjs` only goes away if it's the bento shim.
 
-Node >= 18, zero dependências runtime.
+## 🙏 Credits
+
+bento vendors (with local patches documented in `AGENTS.md`) and redistributes under the original licenses:
+
+- [superpowers](https://github.com/obra/superpowers) v6.1.1, MIT
+- [taste-skill](https://github.com/Leonxlnx/taste-skill) MIT
+- [i-have-adhd](https://github.com/ayghri/i-have-adhd) MIT
+- `agent-browser`, npm CLI with a skill stub pointing at `agent-browser skills get core`
+- `@dietrichgebert/ponytail`, opencode plugin
+
+## 🛠 Development
+
+```bash
+npm test                            # node --test test/*.test.mjs
+node --test test/validate.test.mjs  # a single file
+```
+
+CI runs `npm test` on Node 24 for every pull request and push to `main`. Node >= 18, ESM, zero runtime dependencies. This repo is the source of everything installed into consumers: changes to `lib/`, `templates/`, or `skills/` only reach them through `bento install`/`update`.

@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { runCheck, runEquivalence } from '../lib/validate.mjs';
 import { install, uninstall } from '../lib/install.mjs';
 import { hasBentoAgent } from '../lib/agents.mjs';
-import { addPonytailPlugin, removePonytailPlugin, removeSuperpowersPlugin, setDefaultAgentIfAbsent, removeDefaultAgentIf } from '../lib/opencode-config.mjs';
+import { addPonytailPlugin, removePonytailPlugin, removeSuperpowersPlugin, setDefaultAgentIfAbsent, removeDefaultAgentIf, addInstructionsEntry, removeInstructionsEntry, OUTPUT_STYLE_INSTRUCTIONS } from '../lib/opencode-config.mjs';
 import { addMcpServer, removeMcpServer, CODEGRAPH_MCP, AGENT_BROWSER_MCP } from '../lib/mcp-config.mjs';
 import { ensureCodegraph, ensureAgentBrowser, initCodegraph, removeCodegraph, removeAgentBrowser } from '../lib/tools.mjs';
 import { setupPrePushHook, removePrePushHook, bentoHooksActive } from '../lib/hooks.mjs';
@@ -31,25 +31,26 @@ function run() {
   const noHooks = args.includes('--no-hooks');
   const noCodegraph = args.includes('--no-codegraph');
   const noAgentBrowser = args.includes('--no-agent-browser');
+  const noOutputStyle = args.includes('--no-output-style');
   switch (cmd) {
     case 'install': {
       if (!ensureGhStack()) {
-        console.error('gh-stack indisponível: instale o GitHub CLI (gh) e tente de novo.');
+        console.error('gh-stack unavailable: install the GitHub CLI (gh) and try again.');
         process.exitCode = 1;
         return;
       }
-      const result = install(process.cwd(), { noAgents, noAgentBrowser, noHooks, noSuperpowers, noProfile, noCodegraph });
-      console.log('bento instalado:');
+      const result = install(process.cwd(), { noAgents, noAgentBrowser, noHooks, noSuperpowers, noProfile, noCodegraph, noOutputStyle });
+      console.log('bento installed:');
       console.log(`  skill → ${result.skillDir}`);
       console.log(`  lib   → ${result.dotBento}`);
       if (!noHooks) {
         const h = setupPrePushHook(process.cwd());
         if (h.status === 'installed') console.log('  pre-push → core.hooksPath (.bento/hooks)');
       } else if (bentoHooksActive(process.cwd())) {
-        console.error('aviso: pre-push ainda ativo de um install anterior (core.hooksPath → .bento/hooks); rode update sem --no-hooks para atualizar o hook, ou uninstall para remover.');
+        console.error('warning: pre-push still active from a previous install (core.hooksPath → .bento/hooks); run update without --no-hooks to refresh the hook, or uninstall to remove it.');
       }
       if (result.vendoredSkills.installed.length > 0) {
-        console.log(`  superpowers → ${result.vendoredSkills.installed.length} skills vendadas`);
+        console.log(`  superpowers → ${result.vendoredSkills.installed.length} vendored skills`);
       }
       if (result.agents.created.length > 0) {
         console.log(`  agents → ${result.agents.created.map((n) => `${n}.md`).join(', ')}`);
@@ -60,11 +61,15 @@ function run() {
       }
       if (!noSuperpowers) {
         const sp = removeSuperpowersPlugin(process.cwd());
-        if (sp) console.log(`  superpowers → plugin removido (${sp.path})`);
+        if (sp) console.log(`  superpowers → plugin removed (${sp.path})`);
       }
       if (!noPonytail) {
         const pt = addPonytailPlugin(process.cwd());
         if (pt) console.log(`  ponytail → ${pt.path}`);
+      }
+      if (!noOutputStyle) {
+        const st = addInstructionsEntry(process.cwd());
+        if (st) console.log(`  instructions → ${OUTPUT_STYLE_INSTRUCTIONS}`);
       }
       if (!noCodegraph) {
         ensureCodegraph();
@@ -80,15 +85,15 @@ function run() {
       return;
     }
     case 'update': {
-      const result = install(process.cwd(), { noAgents, noAgentBrowser, noHooks, noSuperpowers, noProfile, noCodegraph });
+      const result = install(process.cwd(), { noAgents, noAgentBrowser, noHooks, noSuperpowers, noProfile, noCodegraph, noOutputStyle });
       if (!noHooks) {
         const h = setupPrePushHook(process.cwd());
         if (h.status === 'installed') console.log('  pre-push → core.hooksPath (.bento/hooks)');
       } else if (bentoHooksActive(process.cwd())) {
-        console.error('aviso: pre-push ainda ativo de um install anterior (core.hooksPath → .bento/hooks); rode update sem --no-hooks para atualizar o hook, ou uninstall para remover.');
+        console.error('warning: pre-push still active from a previous install (core.hooksPath → .bento/hooks); run update without --no-hooks to refresh the hook, or uninstall to remove it.');
       }
       if (result.vendoredSkills.installed.length > 0) {
-        console.log(`  superpowers → ${result.vendoredSkills.installed.length} skills vendadas`);
+        console.log(`  superpowers → ${result.vendoredSkills.installed.length} vendored skills`);
       }
       if (result.agents.created.length > 0) {
         console.log(`  agents → ${result.agents.created.map((n) => `${n}.md`).join(', ')}`);
@@ -99,11 +104,15 @@ function run() {
       }
       if (!noSuperpowers) {
         const sp = removeSuperpowersPlugin(process.cwd());
-        if (sp) console.log(`  superpowers → plugin removido (${sp.path})`);
+        if (sp) console.log(`  superpowers → plugin removed (${sp.path})`);
       }
       if (!noPonytail) {
         const pt = addPonytailPlugin(process.cwd());
         if (pt) console.log(`  ponytail → ${pt.path}`);
+      }
+      if (!noOutputStyle) {
+        const st = addInstructionsEntry(process.cwd());
+        if (st) console.log(`  instructions → ${OUTPUT_STYLE_INSTRUCTIONS}`);
       }
       if (!noCodegraph) {
         const cg = addMcpServer(process.cwd(), CODEGRAPH_MCP.name, CODEGRAPH_MCP.command);
@@ -113,7 +122,7 @@ function run() {
         const ab = addMcpServer(process.cwd(), AGENT_BROWSER_MCP.name, AGENT_BROWSER_MCP.command);
         if (ab) console.log(`  agent-browser → ${ab.path}`);
       }
-      console.log('bento atualizado.');
+      console.log('bento updated.');
       return;
     }
     case 'uninstall': {
@@ -121,7 +130,7 @@ function run() {
         execFileSync('gh', ['extension', 'remove', 'github/gh-stack'], { stdio: 'ignore' });
       } catch (err) {
         const detail = err.stderr?.trim() || err.message;
-        console.error(`aviso: gh-stack não pôde ser removido (${detail})`);
+        console.error(`warning: gh-stack could not be removed (${detail})`);
       }
       const { removed } = uninstall(process.cwd());
       if (removed.includes('.opencode/agents/flash.md')) {
@@ -131,11 +140,13 @@ function run() {
       const h = removePrePushHook(process.cwd());
       const sp = removeSuperpowersPlugin(process.cwd());
       const pt = removePonytailPlugin(process.cwd());
+      const st = removeInstructionsEntry(process.cwd());
       const cg = removeMcpServer(process.cwd(), CODEGRAPH_MCP.name);
       const ab = removeMcpServer(process.cwd(), AGENT_BROWSER_MCP.name);
       const all = [...removed];
       if (sp) all.push(`superpowers (${sp.path})`);
       if (pt) all.push(`ponytail (${pt.path})`);
+      if (st) all.push(`instructions (${st.path})`);
       if (cg) all.push(`codegraph (${cg.path})`);
       if (ab) all.push(`agent-browser (${ab.path})`);
       if (h) all.push('pre-push (core.hooksPath)');
@@ -147,10 +158,10 @@ function run() {
       removeCodegraph();
       removeAgentBrowser();
       if (all.length === 0) {
-        console.log('bento: nada para remover.');
+        console.log('bento: nothing to remove.');
       } else {
-        console.log('bento desinstalado:');
-        for (const path of all) console.log(`  removido: ${path}`);
+        console.log('bento uninstalled:');
+        for (const path of all) console.log(`  removed: ${path}`);
       }
       return;
     }
@@ -161,15 +172,16 @@ function run() {
       process.exitCode = runEquivalence({ base: args[0], head: args[1], layers: args.slice(2), cwd: process.cwd() });
       return;
     default:
-      console.error(`uso: bento install|update|uninstall|check|equivalence
-  install          instala skill, scripts, config, hook pre-push, gh-stack, skills vendadas do superpowers, agents, ponytail, codegraph e agent-browser no projeto
-                   (--no-agents pula AGENTS.md; --no-superpowers pula skills vendadas/agent superpowers (não mexe no plugin);
-                    --no-profile pula os agents do bento e o default_agent; --no-ponytail pula ponytail;
-                    --no-hooks pula o pre-push; --no-codegraph pula codegraph; --no-agent-browser pula agent-browser)
-  update           re-instala mantendo .pr-limits.yaml (não toca gh-stack; não re-instala CLIs nem re-indexa codegraph)
-  uninstall        remove tudo do bento (gh-stack, .bento, skills, agents, shim, config, pre-push, plugins, mcp, .codegraph, CLIs, seção AGENTS.md)
-  check [base]     valida tamanho do diff (head = HEAD, base default = main)
-  equivalence <base> <head> <camada1> [camada2 ...]
+      console.error(`usage: bento install|update|uninstall|check|equivalence
+  install          installs the skill, scripts, config, pre-push hook, gh-stack, vendored superpowers skills, agents, ponytail, codegraph, agent-browser, and the output style (instructions) into the project
+                   (--no-agents skips AGENTS.md; --no-superpowers skips vendored skills/agent superpowers (does not touch the plugin);
+                    --no-profile skips bento profile agents and default_agent; --no-ponytail skips ponytail;
+                    --no-hooks skips pre-push; --no-codegraph skips codegraph; --no-agent-browser skips agent-browser;
+                    --no-output-style skips the i-have-adhd skill and the instructions entry (does not revoke a previous install; use uninstall to remove))
+  update           re-installs keeping .pr-limits.yaml (does not touch gh-stack; does not reinstall CLIs or re-index codegraph)
+  uninstall        removes everything bento added (gh-stack, .bento, skills, agents, shim, config, pre-push, plugins, output style, mcp, .codegraph, CLIs, AGENTS.md section)
+  check [base]     validates diff size (head = HEAD, base default = main)
+  equivalence <base> <head> <layer1> [layer2 ...]
 `);
       process.exitCode = 2;
   }

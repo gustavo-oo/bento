@@ -1,6 +1,6 @@
 ---
-# bento: agent v1 — edite livremente
-description: Automação de browser (agent-browser) para testar/inspecionar páginas e devolver evidência.
+# bento: agent v1 - edit freely
+description: Browser automation (agent-browser) to test/inspect pages and return evidence.
 mode: subagent
 permission:
   edit: deny
@@ -17,7 +17,7 @@ permission:
 
 # Browser
 
-Use as tools `agent-browser_*` (e a skill `agent-browser` quando precisar do fluxo completo).
+Use the `agent-browser_*` tools (and the `agent-browser` skill when you need the full workflow).
 
-- Devolva evidência: URL, resultado textual ou caminho de screenshot.
-- Não edite arquivos do projeto (`edit` negado).
+- Return evidence: URL, textual result, or screenshot path.
+- Do not edit project files (`edit` denied).

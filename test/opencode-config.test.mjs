@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { addPlugin, addPonytailPlugin, addSuperpowersPlugin, removePlugin, removePonytailPlugin, removeSuperpowersPlugin, setDefaultAgentIfAbsent, removeDefaultAgentIf, BENTO_DEFAULT_AGENT, PONYTAIL_PLUGIN, SUPERPOWERS_PLUGIN } from '../lib/opencode-config.mjs';
+import { addPlugin, addPonytailPlugin, addSuperpowersPlugin, addInstructionsEntry, removeInstructionsEntry, removePlugin, removePonytailPlugin, removeSuperpowersPlugin, setDefaultAgentIfAbsent, removeDefaultAgentIf, BENTO_DEFAULT_AGENT, PONYTAIL_PLUGIN, SUPERPOWERS_PLUGIN, OUTPUT_STYLE_INSTRUCTIONS } from '../lib/opencode-config.mjs';
 
 function tmp() {
   return mkdtempSync(join(tmpdir(), 'bento-opencode-'));
@@ -489,7 +489,7 @@ test('default_agent: set com valor presente — skip, avisa e não altera', (t) 
   const r = setDefaultAgentIfAbsent(dir);
   assert.deepEqual(r, { skipped: true, value: 'build' });
   assert.equal(mock.mock.callCount(), 1);
-  assert.ok(mock.mock.calls[0].arguments[0].includes('já definido'));
+  assert.ok(mock.mock.calls[0].arguments[0].includes('already set'));
   assert.equal(readFileSync(join(dir, 'opencode.json'), 'utf8'), before);
 });
 
@@ -728,4 +728,155 @@ test('remove: jsonc — ] dentro de string no array não corrompe a remoção', 
   const r = removeSuperpowersPlugin(dir);
   assert.ok(r);
   assert.equal(readFileSync(r.path, 'utf8'), '{\n  // c\n  "plugin": ["x]y"\n  ]\n}\n');
+});
+
+test('instructions: add cria opencode.json quando não existe config', () => {
+  const dir = tmp();
+  const r = addInstructionsEntry(dir);
+  assert.ok(r);
+  assert.equal(r.changed, OUTPUT_STYLE_INSTRUCTIONS);
+  assert.ok(r.path.endsWith('opencode.json'));
+  const obj = JSON.parse(readFileSync(r.path, 'utf8'));
+  assert.deepEqual(obj.instructions, [OUTPUT_STYLE_INSTRUCTIONS]);
+});
+
+test('instructions: add preserva outras chaves e entradas existentes', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ theme: 'dark', instructions: ['CONTRIBUTING.md'] }, null, 2));
+  const r = addInstructionsEntry(dir);
+  assert.ok(r);
+  const obj = JSON.parse(readFileSync(r.path, 'utf8'));
+  assert.equal(obj.theme, 'dark');
+  assert.deepEqual(obj.instructions, ['CONTRIBUTING.md', OUTPUT_STYLE_INSTRUCTIONS]);
+});
+
+test('instructions: add idempotente quando já presente', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ instructions: [OUTPUT_STYLE_INSTRUCTIONS] }, null, 2));
+  const before = readFileSync(join(dir, 'opencode.json'), 'utf8');
+  assert.equal(addInstructionsEntry(dir), null);
+  assert.equal(readFileSync(join(dir, 'opencode.json'), 'utf8'), before);
+});
+
+test('instructions: add em jsonc preserva comentários', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  // docs do projeto\n  "theme": "dark"\n}\n');
+  const r = addInstructionsEntry(dir);
+  assert.ok(r);
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes('// docs do projeto'));
+  assert.ok(raw.includes('"theme": "dark"'));
+  assert.ok(raw.includes(OUTPUT_STYLE_INSTRUCTIONS));
+  assert.match(raw, /^\s*"instructions"\s*:/m);
+});
+
+test('instructions: remove só a nossa entrada e mantém as outras', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ instructions: ['CONTRIBUTING.md', OUTPUT_STYLE_INSTRUCTIONS, 'docs/x.md'] }, null, 2));
+  const r = removeInstructionsEntry(dir);
+  assert.ok(r);
+  assert.equal(r.removed, OUTPUT_STYLE_INSTRUCTIONS);
+  const obj = JSON.parse(readFileSync(r.path, 'utf8'));
+  assert.deepEqual(obj.instructions, ['CONTRIBUTING.md', 'docs/x.md']);
+});
+
+test('instructions: remove esvazia a chave e deleta o arquivo {}', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ instructions: [OUTPUT_STYLE_INSTRUCTIONS] }, null, 2));
+  const r = removeInstructionsEntry(dir);
+  assert.ok(r);
+  assert.ok(!existsSync(join(dir, 'opencode.json')));
+});
+
+test('instructions: remove em jsonc preserva comentários e demais chaves', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  // docs\n  "instructions": [\n    "CONTRIBUTING.md",\n    "' + OUTPUT_STYLE_INSTRUCTIONS + '"\n  ],\n  "theme": "dark"\n}\n');
+  const r = removeInstructionsEntry(dir);
+  assert.ok(r);
+  const raw = readFileSync(r.path, 'utf8');
+  assert.ok(raw.includes('// docs'));
+  assert.ok(raw.includes('CONTRIBUTING.md'));
+  assert.ok(raw.includes('"theme": "dark"'));
+  assert.ok(!raw.includes(OUTPUT_STYLE_INSTRUCTIONS));
+});
+
+test('instructions: não-array avisa e não altera', (t) => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{ // x\n  "instructions": 42\n}\n');
+  const before = readFileSync(join(dir, 'opencode.jsonc'), 'utf8');
+  const mock = t.mock.method(console, 'error', () => {});
+  assert.equal(addInstructionsEntry(dir), null);
+  assert.equal(mock.mock.callCount(), 1);
+  assert.equal(readFileSync(join(dir, 'opencode.jsonc'), 'utf8'), before);
+});
+
+test('instructions: remove ausente retorna null e não altera', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), '{}');
+  assert.equal(removeInstructionsEntry(dir), null);
+  assert.equal(readFileSync(join(dir, 'opencode.json'), 'utf8'), '{}');
+});
+
+test('instructions: round-trip add + remove em jsonc volta a um estado válido', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.jsonc'), '{\n  // tema\n  "theme": "dark"\n}\n');
+  addInstructionsEntry(dir);
+  assert.ok(readFileSync(join(dir, 'opencode.jsonc'), 'utf8').includes(OUTPUT_STYLE_INSTRUCTIONS));
+  removeInstructionsEntry(dir);
+  const back = readFileSync(join(dir, 'opencode.jsonc'), 'utf8');
+  assert.ok(back.includes('// tema'));
+  assert.ok(back.includes('"theme": "dark"'));
+  assert.ok(!back.includes(OUTPUT_STYLE_INSTRUCTIONS));
+});
+
+test('instructions: match exato — entrada .bak não bloqueia o add e é preservada', () => {
+  const dir = tmp();
+  const bak = `${OUTPUT_STYLE_INSTRUCTIONS}.bak`;
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ instructions: [bak] }, null, 2));
+  const r = addInstructionsEntry(dir);
+  assert.ok(r);
+  const obj = JSON.parse(readFileSync(r.path, 'utf8'));
+  assert.deepEqual(obj.instructions, [bak, OUTPUT_STYLE_INSTRUCTIONS]);
+});
+
+test('instructions: match exato no remove — entrada .bak é preservada', () => {
+  const dir = tmp();
+  const bak = `${OUTPUT_STYLE_INSTRUCTIONS}.bak`;
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ instructions: [bak, OUTPUT_STYLE_INSTRUCTIONS] }, null, 2));
+  const r = removeInstructionsEntry(dir);
+  assert.ok(r);
+  const obj = JSON.parse(readFileSync(r.path, 'utf8'));
+  assert.deepEqual(obj.instructions, [bak]);
+});
+
+test('instructions: match exato em jsonc preserva a entrada .bak no add e no remove', () => {
+  const dir = tmp();
+  const bak = `${OUTPUT_STYLE_INSTRUCTIONS}.bak`;
+  writeFileSync(join(dir, 'opencode.jsonc'), `{\n  // docs\n  "instructions": ["${bak}"]\n}\n`);
+  assert.ok(addInstructionsEntry(dir));
+  let raw = readFileSync(join(dir, 'opencode.jsonc'), 'utf8');
+  assert.ok(raw.includes(bak));
+  assert.ok(raw.includes(`"${OUTPUT_STYLE_INSTRUCTIONS}"`));
+  assert.ok(removeInstructionsEntry(dir));
+  raw = readFileSync(join(dir, 'opencode.jsonc'), 'utf8');
+  assert.ok(raw.includes(bak));
+  assert.ok(!raw.includes(`"${OUTPUT_STYLE_INSTRUCTIONS}"`));
+});
+
+test('instructions: entry customizada funciona no add e no remove', () => {
+  const dir = tmp();
+  assert.ok(addInstructionsEntry(dir, 'docs/style.md'));
+  let obj = JSON.parse(readFileSync(join(dir, 'opencode.json'), 'utf8'));
+  assert.deepEqual(obj.instructions, ['docs/style.md']);
+  assert.ok(removeInstructionsEntry(dir, 'docs/style.md'));
+  assert.ok(!existsSync(join(dir, 'opencode.json')));
+});
+
+test('instructions: valor string vira array no add', () => {
+  const dir = tmp();
+  writeFileSync(join(dir, 'opencode.json'), JSON.stringify({ instructions: 'CONTRIBUTING.md' }, null, 2));
+  const r = addInstructionsEntry(dir);
+  assert.ok(r);
+  const obj = JSON.parse(readFileSync(r.path, 'utf8'));
+  assert.deepEqual(obj.instructions, ['CONTRIBUTING.md', OUTPUT_STYLE_INSTRUCTIONS]);
 });

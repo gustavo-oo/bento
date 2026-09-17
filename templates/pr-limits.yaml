@@ -1,4 +1,4 @@
-# Limites de tamanho de PR (bento/small-prs)
+# PR size limits (bento/small-prs)
 max_lines: 400
 max_files: 10
 overrides:
