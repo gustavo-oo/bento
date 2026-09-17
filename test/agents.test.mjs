@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { AGENT_MARKER, isBentoAgent, installAgents, removeAgents } from '../lib/agents.mjs';
+import { AGENT_MARKER, isBentoAgent, hasBentoAgent, installAgents, removeAgents } from '../lib/agents.mjs';
 
 function tmp() {
   return mkdtempSync(join(tmpdir(), 'bento-agents-'));
@@ -85,10 +85,33 @@ test('AGENT_MARKER/isBentoAgent: só reconhece marcador no frontmatter', () => {
   mkdirSync(join(dir, '.opencode', 'agents'), { recursive: true });
   writeFileSync(agentPath(dir, 'flash'), '---\n# bento: agent v1\n---\n');
   writeFileSync(agentPath(dir, 'user'), '---\ndescription: meu\n---\n');
+  writeFileSync(agentPath(dir, 'corpo'), '---\ndescription: meu\n---\n# bento: agent v1\n');
+  writeFileSync(agentPath(dir, 'sem-fence'), '# bento: agent v1\n');
   assert.ok(AGENT_MARKER.test('---\n# bento: agent v1\n---\n'));
   assert.ok(isBentoAgent(agentPath(dir, 'flash')));
   assert.ok(!isBentoAgent(agentPath(dir, 'user')));
+  assert.ok(!isBentoAgent(agentPath(dir, 'corpo')));
+  assert.ok(!isBentoAgent(agentPath(dir, 'sem-fence')));
   assert.ok(!isBentoAgent(agentPath(dir, 'nao-existe')));
+});
+
+test('hasBentoAgent: true só quando o agent instalado é do bento', () => {
+  const dir = tmp();
+  assert.ok(!hasBentoAgent(dir, 'flash'));
+  mkdirSync(join(dir, '.opencode', 'agents'), { recursive: true });
+  writeFileSync(agentPath(dir, 'flash'), '---\ndescription: meu flash\n---\n');
+  assert.ok(!hasBentoAgent(dir, 'flash'));
+  writeFileSync(agentPath(dir, 'flash'), '---\n# bento: agent v1\n---\n');
+  assert.ok(hasBentoAgent(dir, 'flash'));
+});
+
+test('removeAgents: preserva arquivo do usuário com marcador apenas no corpo', () => {
+  const dir = tmp();
+  mkdirSync(join(dir, '.opencode', 'agents'), { recursive: true });
+  writeFileSync(agentPath(dir, 'flash'), '---\ndescription: user\n---\n# bento: agent v1\n');
+  const { removed } = removeAgents(dir);
+  assert.deepEqual(removed, []);
+  assert.ok(existsSync(agentPath(dir, 'flash')));
 });
 
 test('installAgents: cria os 5 por padrão, só se ausentes', () => {
