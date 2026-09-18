@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/banner.svg" alt="bentō (弁当): the opencode workflow, in a box" width="100%">
+</p>
+
 # bento v2 — opencode workflow setup prompt
 
 Reference only: nothing is vendored here. Paste this file into your coding agent while it runs in the target project, or point the agent at `https://raw.githubusercontent.com/gustavo-oo/bento/v2/README.md`. Every piece is downloaded from its upstream source, so running it again is also the update path.
